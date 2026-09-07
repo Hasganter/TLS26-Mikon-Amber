@@ -1,0 +1,8 @@
+[env]
+# Wokwi simulator configuration for TLS26-Mikon-Amber
+# Docs: https://docs.wokwi.com/vscode/getting-started
+
+[wokwi]
+version    = 1
+firmware   = "build/esp32.esp32.esp32/TLS26-Mikon-Amber.ino.bin"
+elf        = "build/esp32.esp32.esp32/TLS26-Mikon-Amber.ino.elf"
