@@ -3,153 +3,118 @@
   "author": "TLS26-Mikon-Amber",
   "editor": "wokwi",
   "parts": [
-    {
-      "type": "board-esp32-devkit-c-v4",
-      "id": "esp",
-      "top": 140,
-      "left": 100,
-      "attrs": {}
-    },
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 140, "left": 100, "attrs": {} },
     {
       "type": "wokwi-ssd1306",
       "id": "oled1",
-      "top": -120,
-      "left": -40,
-      "attrs": {
-        "i2cAddress": "0x3c"
-      }
+      "top": -118.1,
+      "left": -151.7,
+      "attrs": { "i2cAddress": "0x3c" }
     },
-    {
-      "type": "wokwi-servo",
-      "id": "gateServo",
-      "top": -120,
-      "left": 250,
-      "attrs": {}
-    },
-    {
-      "type": "wokwi-membrane-keypad",
-      "id": "keypad1",
-      "top": 140,
-      "left": 440,
-      "attrs": {}
-    },
+    { "type": "wokwi-servo", "id": "gateServo", "top": -21.2, "left": 288, "attrs": {} },
+    { "type": "wokwi-membrane-keypad", "id": "keypad1", "top": 84.4, "left": 341.6, "attrs": {} },
     {
       "type": "wokwi-hc-sr04",
       "id": "ultrasonicLeft",
       "top": 60,
       "left": -260,
-      "attrs": {
-        "distance": "200"
-      }
+      "attrs": { "distance": "200" }
     },
     {
       "type": "wokwi-hc-sr04",
       "id": "ultrasonicRight",
       "top": 360,
       "left": -260,
-      "attrs": {
-        "distance": "200"
-      }
+      "attrs": { "distance": "200" }
     },
     {
       "type": "wokwi-resistor",
       "id": "r1",
-      "top": 170,
-      "left": -150,
+      "top": 225.6,
+      "left": -134.95,
       "rotate": 90,
-      "attrs": {
-        "value": "1000"
-      }
+      "attrs": { "value": "1000" }
     },
     {
       "type": "wokwi-resistor",
       "id": "r2",
-      "top": 230,
-      "left": -150,
+      "top": 225.6,
+      "left": -173.35,
       "rotate": 90,
-      "attrs": {
-        "value": "1000"
-      }
+      "attrs": { "value": "1000" }
     },
     {
       "type": "wokwi-resistor",
       "id": "r3",
-      "top": 290,
-      "left": -150,
+      "top": 302.4,
+      "left": -173.35,
       "rotate": 90,
-      "attrs": {
-        "value": "1000"
-      }
+      "attrs": { "value": "1000" }
     },
     {
       "type": "wokwi-resistor",
       "id": "r4",
-      "top": 470,
-      "left": -150,
+      "top": 542.4,
+      "left": -134.95,
       "rotate": 90,
-      "attrs": {
-        "value": "1000"
-      }
+      "attrs": { "value": "1000" }
     },
     {
       "type": "wokwi-resistor",
       "id": "r5",
-      "top": 530,
-      "left": -150,
+      "top": 542.4,
+      "left": -173.35,
       "rotate": 90,
-      "attrs": {
-        "value": "1000"
-      }
+      "attrs": { "value": "1000" }
     },
     {
       "type": "wokwi-resistor",
       "id": "r6",
-      "top": 590,
-      "left": -150,
+      "top": 609.6,
+      "left": -173.35,
       "rotate": 90,
-      "attrs": {
-        "value": "1000"
-      }
+      "attrs": { "value": "1000" }
     }
   ],
   "connections": [
-    ["esp:TX", "$serialMonitor:RX", "", []],
-    ["esp:RX", "$serialMonitor:TX", "", []],
-
-    ["oled1:GND", "esp:GND.1", "black", ["v-35", "h210", "*", "h20"]],
-    ["oled1:VIN", "esp:3V3", "orange", ["v-25", "h40", "*", "h-20"]],
-    ["oled1:CLK", "esp:22", "#1e88e5", ["v-45", "h250", "*", "h25"]],
-    ["oled1:DATA", "esp:21", "#43a047", ["v-55", "h270", "*", "h30"]],
-
-    ["gateServo:GND", "esp:GND.1", "black", ["v80", "h-35", "*", "h15"]],
-    ["gateServo:PWM", "esp:4", "#00acc1", ["v100", "h-30", "*", "h20"]],
-    ["gateServo:V+", "esp:5V", "red", ["h40", "v580", "h-260", "*", "h-35"]],
-
-    ["ultrasonicLeft:GND", "esp:GND.2", "black", ["v40", "*", "h-15"]],
-    ["ultrasonicLeft:VCC", "esp:5V", "red", ["v50", "*", "h-15"]],
-    ["ultrasonicLeft:ECHO", "r1:1", "#ab47bc", ["v20", "*", "v-10"]],
-    ["r1:2", "r2:1", "#424242", []],
-    ["r2:2", "r3:1", "#424242", []],
-    ["r3:2", "esp:GND.2", "black", ["v15", "*", "h-15"]],
-    ["r1:2", "esp:18", "#ab47bc", ["v390", "h420", "*", "h35"]],
-    ["ultrasonicLeft:TRIG", "esp:5", "#8e24aa", ["v500", "h440", "*", "h40"]],
-
-    ["ultrasonicRight:GND", "esp:GND.2", "black", ["v20", "*", "h-25"]],
-    ["ultrasonicRight:VCC", "esp:5V", "red", ["v30", "*", "h-20"]],
-    ["ultrasonicRight:ECHO", "r4:1", "#ffb300", ["v20", "*", "v-10"]],
-    ["r4:2", "r5:1", "#424242", []],
-    ["r5:2", "r6:1", "#424242", []],
-    ["r6:2", "esp:GND.2", "black", ["v20", "h220", "*", "h-30"]],
-    ["r4:2", "esp:23", "#ffb300", ["v120", "h440", "*", "h45"]],
-    ["ultrasonicRight:TRIG", "esp:19", "#fdd835", ["v230", "h460", "*", "h50"]],
-
-    ["keypad1:R1", "esp:13", "#2e7d32", ["v100", "*", "h-20"]],
-    ["keypad1:R2", "esp:12", "#388e3c", ["v112", "*", "h-30"]],
-    ["keypad1:R3", "esp:14", "#43a047", ["v124", "*", "h-40"]],
-    ["keypad1:R4", "esp:27", "#66bb6a", ["v136", "*", "h-50"]],
-    ["keypad1:C1", "esp:26", "#0d47a1", ["v148", "*", "h-60"]],
-    ["keypad1:C2", "esp:25", "#1565c0", ["v160", "*", "h-70"]],
-    ["keypad1:C3", "esp:33", "#1976d2", ["v172", "*", "h-80"]],
-    ["keypad1:C4", "esp:32", "#42a5f5", ["v184", "*", "h-90"]]
-  ]
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "oled1:GND", "esp:GND.1", "black", [ "v-18.7", "h57.8", "v418.4" ] ],
+    [ "oled1:VIN", "esp:3V3", "orange", [ "v-28.8", "h77.4", "v303.2" ] ],
+    [ "oled1:CLK", "esp:22", "#1e88e5", [ "v-45", "h336.6", "v338.6" ] ],
+    [ "oled1:DATA", "esp:21", "#43a047", [ "v-55", "h355.2", "v377.4" ] ],
+    [ "gateServo:GND", "esp:GND.1", "black", [ "h-278.4", "v264.8" ] ],
+    [ "gateServo:PWM", "esp:4", "#00acc1", [ "h-67.2", "v236.2" ] ],
+    [ "gateServo:V+", "esp:5V", "red", [ "h-9.6", "v345.7", "h-326.4", "v-42.4" ] ],
+    [ "ultrasonicLeft:VCC", "esp:5V", "red", [ "v27.9", "h140.7", "v159.2" ] ],
+    [ "ultrasonicLeft:ECHO", "r1:1", "#ab47bc", [ "v37.5", "h63.1" ] ],
+    [ "r1:2", "r2:1", "#424242", [ "h-19.2", "v-58.8" ] ],
+    [ "r2:2", "r3:1", "#424242", [] ],
+    [ "r3:2", "esp:GND.2", "black", [ "v18", "h412.8", "v-186.4" ] ],
+    [ "r1:2", "esp:18", "#ab47bc", [ "v46.8", "h67.2", "v67.2", "h278.4", "v-128.8" ] ],
+    [ "ultrasonicRight:GND", "esp:GND.2", "black", [ "v236.7", "h427.5", "v-522.4" ] ],
+    [ "ultrasonicRight:VCC", "esp:5V", "red", [ "v30", "h140.7", "v-142.9" ] ],
+    [ "ultrasonicRight:ECHO", "r4:1", "#ffb300", [ "v44.7", "h63.1" ] ],
+    [ "r4:2", "r5:1", "#424242", [ "h-19.2", "v-58.8" ] ],
+    [ "r5:2", "r6:1", "#424242", [] ],
+    [ "r6:2", "esp:GND.2", "black", [ "v46.8", "h412.8", "v-522.4" ] ],
+    [ "r4:2", "esp:23", "#ffb300", [ "v94.8", "h364.8", "v-493.6" ] ],
+    [ "ultrasonicRight:TRIG", "esp:19", "#fdd835", [ "v227.1", "h429.46", "v-445.6" ] ],
+    [ "keypad1:R1", "esp:13", "#2e7d32", [ "v86.4", "h-422.4", "v-205.6" ] ],
+    [ "keypad1:R2", "esp:12", "#388e3c", [ "v86.4", "h-432.4", "v-224.8" ] ],
+    [ "keypad1:R3", "esp:14", "#43a047", [ "v86.4", "h-441.9", "v-234.4" ] ],
+    [ "keypad1:R4", "esp:27", "#66bb6a", [ "v86.4", "h-451.4", "v-244" ] ],
+    [ "keypad1:C1", "esp:26", "#0d47a1", [ "v86.4", "h-460.9", "v-253.6" ] ],
+    [ "keypad1:C2", "esp:25", "#1565c0", [ "v86.4", "h-470.4", "v-263.2" ] ],
+    [ "keypad1:C3", "esp:33", "#1976d2", [ "v86.4", "h-480.15", "v-272.8" ] ],
+    [ "keypad1:C4", "esp:32", "#42a5f5", [ "v86.4", "h-489.9", "v-282.4" ] ],
+    [ "ultrasonicLeft:GND", "esp:GND.2", "black", [ "v200.7", "h427.5", "v-186.4" ] ],
+    [
+      "ultrasonicLeft:TRIG",
+      "esp:5",
+      "magenta",
+      [ "v18.3", "h149.9", "v192", "h259.2", "v-109.6" ]
+    ]
+  ],
+  "dependencies": {}
 }
