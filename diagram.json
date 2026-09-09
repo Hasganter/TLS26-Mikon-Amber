@@ -7,8 +7,8 @@
     {
       "type": "wokwi-ssd1306",
       "id": "oled1",
-      "top": -118.1,
-      "left": -151.7,
+      "top": -50.9,
+      "left": 472.3,
       "attrs": { "i2cAddress": "0x3c" }
     },
     { "type": "wokwi-servo", "id": "gateServo", "top": -21.2, "left": 288, "attrs": {} },
@@ -79,27 +79,22 @@
   "connections": [
     [ "esp:TX", "$serialMonitor:RX", "", [] ],
     [ "esp:RX", "$serialMonitor:TX", "", [] ],
-    [ "oled1:GND", "esp:GND.1", "black", [ "v-18.7", "h57.8", "v418.4" ] ],
-    [ "oled1:VIN", "esp:3V3", "orange", [ "v-28.8", "h77.4", "v303.2" ] ],
-    [ "oled1:CLK", "esp:22", "#1e88e5", [ "v-45", "h336.6", "v338.6" ] ],
-    [ "oled1:DATA", "esp:21", "#43a047", [ "v-55", "h355.2", "v377.4" ] ],
-    [ "gateServo:GND", "esp:GND.1", "black", [ "h-278.4", "v264.8" ] ],
-    [ "gateServo:PWM", "esp:4", "#00acc1", [ "h-67.2", "v236.2" ] ],
-    [ "gateServo:V+", "esp:5V", "red", [ "h-9.6", "v345.7", "h-326.4", "v-42.4" ] ],
-    [ "ultrasonicLeft:VCC", "esp:5V", "red", [ "v27.9", "h140.7", "v159.2" ] ],
+    [ "oled1:VIN", "esp:3V3", "orange", [ "v-48", "h-354.6", "v134.4", "h-249.6", "v120.8" ] ],
+    [ "oled1:CLK", "esp:22", "#1e88e5", [ "v-38.4", "h-297", "v264.8" ] ],
+    [ "oled1:DATA", "esp:21", "#43a047", [ "v-28.8", "h-278.4", "v284" ] ],
+    [ "gateServo:PWM", "esp:4", "#00acc1", [ "h-9.6", "v236.2" ] ],
+    [ "gateServo:V+", "esp:5V", "red", [ "h-9.6", "v0.1", "h-326.4", "v303.2" ] ],
+    [ "ultrasonicLeft:VCC", "esp:5V", "red", [ "v18.3", "h140.7", "v168.8" ] ],
     [ "ultrasonicLeft:ECHO", "r1:1", "#ab47bc", [ "v37.5", "h63.1" ] ],
     [ "r1:2", "r2:1", "#424242", [ "h-19.2", "v-58.8" ] ],
     [ "r2:2", "r3:1", "#424242", [] ],
-    [ "r3:2", "esp:GND.2", "black", [ "v18", "h412.8", "v-186.4" ] ],
-    [ "r1:2", "esp:18", "#ab47bc", [ "v46.8", "h67.2", "v67.2", "h278.4", "v-128.8" ] ],
-    [ "ultrasonicRight:GND", "esp:GND.2", "black", [ "v236.7", "h427.5", "v-522.4" ] ],
-    [ "ultrasonicRight:VCC", "esp:5V", "red", [ "v30", "h140.7", "v-142.9" ] ],
+    [ "r1:2", "esp:18", "#ab47bc", [ "v46.8", "h67.2", "v172.8", "h288", "v-234.4" ] ],
+    [ "ultrasonicRight:VCC", "esp:5V", "red", [ "v25.5", "h140.7", "v-138.4" ] ],
     [ "ultrasonicRight:ECHO", "r4:1", "#ffb300", [ "v44.7", "h63.1" ] ],
     [ "r4:2", "r5:1", "#424242", [ "h-19.2", "v-58.8" ] ],
     [ "r5:2", "r6:1", "#424242", [] ],
-    [ "r6:2", "esp:GND.2", "black", [ "v46.8", "h412.8", "v-522.4" ] ],
-    [ "r4:2", "esp:23", "#ffb300", [ "v94.8", "h364.8", "v-493.6" ] ],
-    [ "ultrasonicRight:TRIG", "esp:19", "#fdd835", [ "v227.1", "h429.46", "v-445.6" ] ],
+    [ "r4:2", "esp:23", "#ffb300", [ "v8.4", "h9.6", "v-86.4", "h364.8", "v-320.8" ] ],
+    [ "ultrasonicRight:TRIG", "esp:19", "#fdd835", [ "v35.1", "h437.9", "v-253.6" ] ],
     [ "keypad1:R1", "esp:13", "#2e7d32", [ "v86.4", "h-422.4", "v-205.6" ] ],
     [ "keypad1:R2", "esp:12", "#388e3c", [ "v86.4", "h-432.4", "v-224.8" ] ],
     [ "keypad1:R3", "esp:14", "#43a047", [ "v86.4", "h-441.9", "v-234.4" ] ],
@@ -108,13 +103,23 @@
     [ "keypad1:C2", "esp:25", "#1565c0", [ "v86.4", "h-470.4", "v-263.2" ] ],
     [ "keypad1:C3", "esp:33", "#1976d2", [ "v86.4", "h-480.15", "v-272.8" ] ],
     [ "keypad1:C4", "esp:32", "#42a5f5", [ "v86.4", "h-489.9", "v-282.4" ] ],
-    [ "ultrasonicLeft:GND", "esp:GND.2", "black", [ "v200.7", "h427.5", "v-186.4" ] ],
     [
       "ultrasonicLeft:TRIG",
       "esp:5",
       "magenta",
-      [ "v18.3", "h149.9", "v192", "h259.2", "v-109.6" ]
-    ]
+      [ "v27.9", "h149.9", "v288", "h268.8", "v-215.2" ]
+    ],
+    [ "gateServo:GND", "esp:GND.2", "black", [ "h-19.2", "v140" ] ],
+    [ "oled1:GND", "esp:GND.2", "black", [ "v-18.7", "h-307", "v226.4" ] ],
+    [
+      "ultrasonicLeft:GND",
+      "esp:GND.1",
+      "black",
+      [ "v200.7", "h72.3", "v105.6", "h115.2", "v-167.2" ]
+    ],
+    [ "r3:2", "esp:GND.1", "black", [ "v18", "h57.6", "v105.6", "h115.2", "v-167.2" ] ],
+    [ "ultrasonicRight:GND", "esp:GND.1", "black", [ "v6.3", "h187.5", "v-167.2" ] ],
+    [ "r6:2", "esp:GND.1", "black", [ "h57.6", "v-183.6", "h115.2", "v-167.2" ] ]
   ],
   "dependencies": {}
 }
