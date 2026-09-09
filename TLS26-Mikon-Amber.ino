@@ -35,7 +35,8 @@ DisplayManager displayMgr;
 // ═════════════════════════════════════════════════════════════
 
 StatusSistem statusSaatIni = STATUS_STANDBY;
-int slotTersedia = KAPASITAS_MAKSIMAL;
+int kapasitasMaksimal = DEFAULT_KAPASITAS_MAKSIMAL;
+int slotTersedia = DEFAULT_KAPASITAS_MAKSIMAL;
 
 // Pewaktu siklus standby (30 detik per layar)
 unsigned long waktuSiklusStandby = 0;
@@ -57,6 +58,9 @@ String bufferInputDebug = "";
 String pesanFeedbackDebug = "";
 unsigned long waktuFeedbackDebug = 0;
 unsigned long waktuAktivitasDebugTerakhir = 0;
+bool fokusMaksimal = false;
+String bufferInputTersedia = "";
+String bufferInputMaksimal = "";
 
 // ═════════════════════════════════════════════════════════════
 // SETUP
@@ -78,8 +82,8 @@ void setup() {
   gate.inisialisasi(PIN_SERVO_GATE);
 
   // Inisialisasi NVS Flash Preferences
-  slotTersedia = storage.inisialisasi(KAPASITAS_MAKSIMAL);
-  Serial.printf("[NVS] Slot dimuat: %d / %d\n", slotTersedia, KAPASITAS_MAKSIMAL);
+  storage.inisialisasi(DEFAULT_KAPASITAS_MAKSIMAL, slotTersedia, kapasitasMaksimal);
+  Serial.printf("[NVS] Slot dimuat: %d / %d\n", slotTersedia, kapasitasMaksimal);
 
   // Inisialisasi Software RTC
   TimeManager::inisialisasiWaktu();
@@ -255,7 +259,7 @@ void loop() {
     case STATUS_LANE_KELUAR: {
       if (!ultrasonic.isMobilTerdeteksiKanan()) {
         Serial.println("[LANE KELUAR] Mobil selesai keluar. Tambah slot.");
-        if (slotTersedia < KAPASITAS_MAKSIMAL) {
+        if (slotTersedia < kapasitasMaksimal) {
           slotTersedia++;
           storage.simpanSlot(slotTersedia);
         }
@@ -283,7 +287,12 @@ void loop() {
 
         if (tombol == '1') statusSaatIni = STATUS_DEBUG_WAKTU;
         else if (tombol == '2') statusSaatIni = STATUS_DEBUG_TANGGAL;
-        else if (tombol == '3') statusSaatIni = STATUS_DEBUG_SLOT;
+        else if (tombol == '3') {
+          statusSaatIni = STATUS_DEBUG_SLOT;
+          fokusMaksimal = false;
+          bufferInputTersedia = "";
+          bufferInputMaksimal = "";
+        }
         else if (tombol == 'C') {
           statusSaatIni = STATUS_STANDBY;
           waktuSiklusStandby = sekarang;
@@ -365,7 +374,7 @@ void loop() {
     }
 
     // ─────────────────────────────────────────────────────────
-    // STATUS_DEBUG_SLOT: Sub-menu Edit Slot Parkir Manual
+    // STATUS_DEBUG_SLOT: Sub-menu Edit Slot Parkir Terpadu
     // ─────────────────────────────────────────────────────────
     case STATUS_DEBUG_SLOT: {
       if (sekarang - waktuAktivitasDebugTerakhir >= TIMEOUT_DEBUG_MS) {
@@ -383,38 +392,38 @@ void loop() {
         waktuAktivitasDebugTerakhir = sekarang;
 
         if (tombol == 'A') {
-          if (slotTersedia < KAPASITAS_MAKSIMAL) {
-            slotTersedia++;
-            storage.simpanSlot(slotTersedia);
-            pesanFeedbackDebug = "Slot Ditambah!";
-            waktuFeedbackDebug = sekarang;
-          }
-        } else if (tombol == 'B') {
-          if (slotTersedia > 0) {
-            slotTersedia--;
-            storage.simpanSlot(slotTersedia);
-            pesanFeedbackDebug = "Slot Dikurangi!";
-            waktuFeedbackDebug = sekarang;
-          }
+          // Beralih field aktif antara Tersedia dan Maksimal
+          fokusMaksimal = !fokusMaksimal;
         } else if (tombol >= '0' && tombol <= '9') {
-          bufferInputDebug = String(tombol);
+          if (fokusMaksimal) {
+            if (bufferInputMaksimal.length() < 2) bufferInputMaksimal += tombol;
+          } else {
+            if (bufferInputTersedia.length() < 2) bufferInputTersedia += tombol;
+          }
         } else if (tombol == '*') {
-          bufferInputDebug = "";
+          if (fokusMaksimal) {
+            if (bufferInputMaksimal.length() > 0) bufferInputMaksimal.remove(bufferInputMaksimal.length() - 1);
+          } else {
+            if (bufferInputTersedia.length() > 0) bufferInputTersedia.remove(bufferInputTersedia.length() - 1);
+          }
         } else if (tombol == 'C') {
           statusSaatIni = STATUS_DEBUG_MENU;
         } else if (tombol == '#') {
-          if (bufferInputDebug.length() > 0) {
-            int nilaiBaru = bufferInputDebug.toInt();
-            if (nilaiBaru >= 0 && nilaiBaru <= KAPASITAS_MAKSIMAL) {
-              slotTersedia = nilaiBaru;
-              storage.simpanSlot(slotTersedia);
-              pesanFeedbackDebug = "Slot Disimpan!";
-            } else {
-              pesanFeedbackDebug = "Slot Melebihi Max!";
-              bufferInputDebug = "";
-            }
-            waktuFeedbackDebug = sekarang;
+          int newMax = (bufferInputMaksimal.length() > 0) ? bufferInputMaksimal.toInt() : kapasitasMaksimal;
+          int newSlot = (bufferInputTersedia.length() > 0) ? bufferInputTersedia.toInt() : slotTersedia;
+
+          if (newMax >= 1 && newMax <= 99 && newSlot >= 0 && newSlot <= newMax) {
+            kapasitasMaksimal = newMax;
+            slotTersedia = newSlot;
+            storage.simpanKapasitasMaksimal(kapasitasMaksimal);
+            storage.simpanSlot(slotTersedia);
+            pesanFeedbackDebug = "Slot Disimpan!";
+          } else {
+            pesanFeedbackDebug = "Nilai Invalid!";
+            bufferInputTersedia = "";
+            bufferInputMaksimal = "";
           }
+          waktuFeedbackDebug = sekarang;
         }
       }
       break;
@@ -447,7 +456,7 @@ void loop() {
   displayMgr.render(
     statusSaatIni,
     slotTersedia,
-    KAPASITAS_MAKSIMAL,
+    kapasitasMaksimal,
     layarStandbyModeA,
     ultrasonic.getJarakKiri(),
     sisaCountdown5s,
@@ -459,6 +468,9 @@ void loop() {
     bufTanggal,
     bufHari,
     bufferInputDebug,
-    pesanFeedbackDebug
+    pesanFeedbackDebug,
+    fokusMaksimal,
+    bufferInputTersedia,
+    bufferInputMaksimal
   );
 }

@@ -9,6 +9,7 @@ bool DisplayManager::inisialisasi() {
     return false;
   }
   display.clearDisplay();
+  display.setTextWrap(false);
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
   display.setCursor(16, 24);
@@ -18,6 +19,43 @@ bool DisplayManager::inisialisasi() {
   display.display();
   delay(1000);
   return true;
+}
+
+void DisplayManager::drawTextScroll(int16_t y, const String &text, uint8_t textSize, bool centerIfFits) {
+  display.setTextSize(textSize);
+  display.setTextWrap(false);
+
+  int textPixelWidth = text.length() * 6 * textSize;
+
+  if (textPixelWidth <= SCREEN_WIDTH) {
+    int16_t x = centerIfFits ? ((SCREEN_WIDTH - textPixelWidth) / 2) : 0;
+    display.setCursor(x, y);
+    display.print(text);
+  } else {
+    // Auto-scroll horizontal halus dengan pause di awal dan akhir
+    const unsigned long PAUSE_AWAL_MS = 1200;
+    const unsigned long PAUSE_AKHIR_MS = 1000;
+    const unsigned long MS_PER_PIXEL = 35;
+    const int PADDING_AKHIR = 20;
+
+    int totalScroll = (textPixelWidth - SCREEN_WIDTH) + PADDING_AKHIR;
+    unsigned long durasiScroll = totalScroll * MS_PER_PIXEL;
+    unsigned long totalSiklus = PAUSE_AWAL_MS + durasiScroll + PAUSE_AKHIR_MS;
+
+    unsigned long fase = millis() % totalSiklus;
+    int16_t xOffset = 0;
+
+    if (fase < PAUSE_AWAL_MS) {
+      xOffset = 0;
+    } else if (fase < PAUSE_AWAL_MS + durasiScroll) {
+      xOffset = (int16_t)((fase - PAUSE_AWAL_MS) / MS_PER_PIXEL);
+    } else {
+      xOffset = totalScroll;
+    }
+
+    display.setCursor(-xOffset, y);
+    display.print(text);
+  }
 }
 
 void DisplayManager::render(
@@ -35,76 +73,79 @@ void DisplayManager::render(
   const char* bufTanggal,
   const char* bufHari,
   const String &bufferInputDebug,
-  const String &pesanFeedbackDebug
+  const String &pesanFeedbackDebug,
+  bool fokusMaksimal,
+  const String &bufferTersedia,
+  const String &bufferMaksimal
 ) {
   display.clearDisplay();
   display.setTextColor(SSD1306_WHITE);
+  display.setTextWrap(false);
 
   switch (status) {
+    // ─────────────────────────────────────────────────────────
+    // STATUS_STANDBY: Tampilan Dashboard Bersih (Slot di Tengah)
+    // ─────────────────────────────────────────────────────────
     case STATUS_STANDBY: {
-      // Header: Info Slot dan Jam
-      display.setTextSize(1);
-      display.setCursor(0, 0);
-      display.print("SLOT: ");
-      display.print(slotTersedia);
-      display.print("/");
-      display.print(kapasitasMaksimal);
-
-      display.setCursor(80, 0);
-      display.print(bufWaktu);
-      display.drawLine(0, 10, 128, 10, SSD1306_WHITE);
-
       if (slotTersedia <= 0) {
+        // Status Parkir Penuh
+        drawTextScroll(2, "! PARKIR PENUH !", 1, true);
+
+        // Angka tengah Size 3: "PENUH"
+        display.setTextSize(3);
+        display.setCursor(19, 18);
+        display.print("PENUH");
+
+        display.drawFastHLine(14, 14, 100, SSD1306_WHITE);
+        display.drawFastHLine(14, 45, 100, SSD1306_WHITE);
+
+        drawTextScroll(52, "Gerbang Dikunci", 1, true);
+      } else if (jarakKiri < AMBANG_DETEKSI_CM) {
+        // Ada kendaraan terdeteksi di sensor masuk
+        drawTextScroll(2, "KENDARAAN MASUK", 1, true);
+
         display.setTextSize(2);
-        display.setCursor(4, 20);
-        display.print("PARKIR");
-        display.setCursor(4, 38);
-        display.print("PENUH!");
-        display.setTextSize(1);
-        display.setCursor(0, 56);
-        display.print("Gerbang Masuk Terkunci");
+        display.setCursor(34, 16);
+        display.print("TEKAN");
+        display.setCursor(34, 32);
+        display.print("TIKET");
+
+        drawTextScroll(52, "Tekan Tombol Tiket", 1, true);
       } else {
-        if (jarakKiri < AMBANG_DETEKSI_CM) {
-          // Ada kendaraan di depan sensor masuk
-          display.setTextSize(1);
-          display.setCursor(0, 16);
-          display.print("Kendaraan Terdeteksi!");
-          display.setTextSize(2);
-          display.setCursor(0, 28);
-          display.print("TEKAN");
-          display.setCursor(0, 46);
-          display.print("TOMBOL TIKET");
-        } else if (layarStandbyModeA) {
-          // Standby Tampilan A: Ucapan Selamat Datang
-          display.setTextSize(2);
-          display.setCursor(4, 20);
-          display.print("SELAMAT");
-          display.setCursor(4, 38);
-          display.print("DATANG");
-          display.setTextSize(1);
-          display.setCursor(0, 56);
-          display.print("Tekan Tombol Utk Masuk");
+        // Standby Normal
+        if (layarStandbyModeA) {
+          drawTextScroll(2, "SELAMAT DATANG", 1, true);
         } else {
-          // Standby Tampilan B: Jam dan Tanggal Real-Time
-          display.setTextSize(1);
-          display.setCursor(0, 16);
-          display.print(bufHari);
-          display.print(", ");
-          display.print(bufTanggal);
+          drawTextScroll(2, "STATUS PARKIR", 1, true);
+        }
 
-          display.setTextSize(2);
-          display.setCursor(14, 32);
-          display.print(bufWaktu);
+        // Kartu Slot Tengah (Font Size 3 Besar)
+        display.drawFastHLine(14, 14, 100, SSD1306_WHITE);
+        display.drawFastHLine(14, 45, 100, SSD1306_WHITE);
 
-          display.setTextSize(1);
-          display.setCursor(0, 56);
-          display.print("Slot Tersedia: ");
-          display.print(slotTersedia);
+        String strSlot = String(slotTersedia) + "/" + String(kapasitasMaksimal);
+        int strWidth = strSlot.length() * 18;
+        int16_t xCenter = (SCREEN_WIDTH - strWidth) / 2;
+        if (xCenter < 0) xCenter = 0;
+
+        display.setTextSize(3);
+        display.setCursor(xCenter, 18);
+        display.print(strSlot);
+
+        // Baris Bawah
+        if (layarStandbyModeA) {
+          drawTextScroll(52, "Tekan Tombol Tiket", 1, true);
+        } else {
+          String strWaktuBawah = String(bufHari) + ", " + String(bufWaktu);
+          drawTextScroll(52, strWaktuBawah, 1, true);
         }
       }
       break;
     }
 
+    // ─────────────────────────────────────────────────────────
+    // STATUS_COUNTDOWN_5S: Jendela Pembatalan & Hitung Mundur
+    // ─────────────────────────────────────────────────────────
     case STATUS_COUNTDOWN_5S: {
       int sisaDetik = (sisaCountdown5s / 1000) + 1;
       if (sisaDetik > 5) sisaDetik = 5;
@@ -115,20 +156,20 @@ void DisplayManager::render(
       display.print("[ PROSES MASUK ]");
       display.drawLine(0, 10, 128, 10, SSD1306_WHITE);
 
-      display.setTextSize(1);
       display.setCursor(0, 16);
       display.print("Membuka gate dalam:");
 
       display.setTextSize(3);
-      display.setCursor(54, 28);
+      display.setCursor(54, 26);
       display.print(sisaDetik);
 
-      display.setTextSize(1);
-      display.setCursor(0, 56);
-      display.print("Tekan C : Batalkan");
+      drawTextScroll(52, "Tekan C : Batalkan", 1, true);
       break;
     }
 
+    // ─────────────────────────────────────────────────────────
+    // STATUS_GATE_TERBUKA: Portal Masuk & Safety Hold
+    // ─────────────────────────────────────────────────────────
     case STATUS_GATE_TERBUKA: {
       display.setTextSize(1);
       display.setCursor(0, 0);
@@ -136,23 +177,23 @@ void DisplayManager::render(
       display.drawLine(0, 10, 128, 10, SSD1306_WHITE);
 
       if (mobilSedangDiBawahGate) {
-        display.setTextSize(1);
         display.setCursor(0, 16);
-        display.print("Status: Mobil Melintas");
+        display.print("Mobil Sedang Lewat");
+
         display.setTextSize(2);
-        display.setCursor(10, 32);
-        display.print("SILAKAN");
-        display.setCursor(26, 48);
+        display.setCursor(34, 32);
         display.print("MASUK");
+
+        drawTextScroll(52, "Safety Hold Aktif", 1, true);
       } else if (mobilPernahTerdeteksiDiGate) {
         int sisaDetik = (sisaTutupAmanMs / 1000) + 1;
         if (sisaDetik < 1) sisaDetik = 1;
 
-        display.setTextSize(1);
         display.setCursor(0, 16);
-        display.print("Mobil Selesai Lewat!");
+        display.print("Mobil Selesai Lewat");
         display.setCursor(0, 30);
         display.print("Tutup Gate dalam:");
+
         display.setTextSize(2);
         display.setCursor(54, 44);
         display.print(sisaDetik);
@@ -161,7 +202,6 @@ void DisplayManager::render(
         int sisaDetik = (sisaTimeoutGateMs / 1000) + 1;
         if (sisaDetik < 1) sisaDetik = 1;
 
-        display.setTextSize(1);
         display.setCursor(0, 16);
         display.print("Silakan Lewat...");
         display.setCursor(0, 30);
@@ -174,6 +214,9 @@ void DisplayManager::render(
       break;
     }
 
+    // ─────────────────────────────────────────────────────────
+    // STATUS_LANE_KELUAR: Lane Keluar & Salam Perpisahan
+    // ─────────────────────────────────────────────────────────
     case STATUS_LANE_KELUAR: {
       display.setTextSize(1);
       display.setCursor(0, 0);
@@ -181,17 +224,18 @@ void DisplayManager::render(
       display.drawLine(0, 10, 128, 10, SSD1306_WHITE);
 
       display.setTextSize(2);
-      display.setCursor(4, 18);
+      display.setCursor(28, 18);
       display.print("SAMPAI");
-      display.setCursor(4, 34);
-      display.print("JUMPA LAGI");
+      display.setCursor(16, 34);
+      display.print("JUMPA!");
 
-      display.setTextSize(1);
-      display.setCursor(0, 54);
-      display.print("Hati-hati di jalan!");
+      drawTextScroll(52, "Hati-hati di jalan!", 1, true);
       break;
     }
 
+    // ─────────────────────────────────────────────────────────
+    // STATUS_DEBUG_MENU: Menu Utama Konfigurasi
+    // ─────────────────────────────────────────────────────────
     case STATUS_DEBUG_MENU: {
       display.setTextSize(1);
       display.setCursor(0, 0);
@@ -203,12 +247,15 @@ void DisplayManager::render(
       display.setCursor(0, 26);
       display.print("2: Tanggal(DDMMYYYY)");
       display.setCursor(0, 38);
-      display.print("3: Slot   (Manual)");
+      display.print("3: Slot Parkir");
       display.setCursor(0, 50);
       display.print("C: Keluar ke Standby");
       break;
     }
 
+    // ─────────────────────────────────────────────────────────
+    // STATUS_DEBUG_WAKTU: Sub-menu Edit Waktu (HHMM)
+    // ─────────────────────────────────────────────────────────
     case STATUS_DEBUG_WAKTU: {
       display.setTextSize(1);
       display.setCursor(0, 0);
@@ -216,9 +263,7 @@ void DisplayManager::render(
       display.drawLine(0, 9, 128, 9, SSD1306_WHITE);
 
       if (pesanFeedbackDebug.length() > 0) {
-        display.setTextSize(1);
-        display.setCursor(0, 24);
-        display.print(pesanFeedbackDebug);
+        drawTextScroll(28, pesanFeedbackDebug, 1, true);
       } else {
         display.setCursor(0, 14);
         display.print("Jam skrg: ");
@@ -236,11 +281,14 @@ void DisplayManager::render(
 
         display.setTextSize(1);
         display.setCursor(0, 56);
-        display.print("*:Del  #:Simpan C:Batal");
+        display.print("*:Hapus #:Ok C:Batal");
       }
       break;
     }
 
+    // ─────────────────────────────────────────────────────────
+    // STATUS_DEBUG_TANGGAL: Sub-menu Edit Tanggal (DDMMYYYY)
+    // ─────────────────────────────────────────────────────────
     case STATUS_DEBUG_TANGGAL: {
       display.setTextSize(1);
       display.setCursor(0, 0);
@@ -248,9 +296,7 @@ void DisplayManager::render(
       display.drawLine(0, 9, 128, 9, SSD1306_WHITE);
 
       if (pesanFeedbackDebug.length() > 0) {
-        display.setTextSize(1);
-        display.setCursor(0, 24);
-        display.print(pesanFeedbackDebug);
+        drawTextScroll(28, pesanFeedbackDebug, 1, true);
       } else {
         display.setCursor(0, 14);
         display.print("Tgl skrg: ");
@@ -259,7 +305,6 @@ void DisplayManager::render(
         display.setCursor(0, 26);
         display.print("Format  : DDMMYYYY");
 
-        display.setTextSize(1);
         display.setCursor(8, 40);
         display.print("Input: [");
         display.print(bufferInputDebug);
@@ -267,40 +312,51 @@ void DisplayManager::render(
         display.print("]");
 
         display.setCursor(0, 56);
-        display.print("*:Del  #:Simpan C:Batal");
+        display.print("*:Hapus #:Ok C:Batal");
       }
       break;
     }
 
+    // ─────────────────────────────────────────────────────────
+    // STATUS_DEBUG_SLOT: Sub-menu Edit Slot Parkir Terpadu
+    // ─────────────────────────────────────────────────────────
     case STATUS_DEBUG_SLOT: {
       display.setTextSize(1);
       display.setCursor(0, 0);
-      display.print("[ ATUR SLOT MANUAL ]");
+      display.print("[ ATUR SLOT PARKIR ]");
       display.drawLine(0, 9, 128, 9, SSD1306_WHITE);
 
       if (pesanFeedbackDebug.length() > 0) {
-        display.setTextSize(1);
-        display.setCursor(0, 24);
-        display.print(pesanFeedbackDebug);
+        drawTextScroll(28, pesanFeedbackDebug, 1, true);
       } else {
-        display.setCursor(0, 13);
-        display.print("Slot Skrg: ");
-        display.print(slotTersedia);
-        display.print(" / ");
-        display.print(kapasitasMaksimal);
-
-        display.setCursor(0, 24);
-        display.print("A: +1 Slot | B: -1 Slot");
-
-        display.setCursor(0, 36);
-        display.print("Atau Ketik: 0-");
-        display.print(kapasitasMaksimal);
-        display.print(" [");
-        display.print(bufferInputDebug);
+        // Baris 1: Slot Tersedia
+        display.setCursor(0, 14);
+        display.print(!fokusMaksimal ? ">" : " ");
+        display.print(" Tersedia: [");
+        if (!fokusMaksimal && bufferTersedia.length() > 0) {
+          display.print(bufferTersedia);
+        } else {
+          display.print(slotTersedia);
+        }
         display.print("]");
 
-        display.setCursor(0, 54);
-        display.print("#:Simpan  C:Kembali");
+        // Baris 2: Kapasitas Maksimal
+        display.setCursor(0, 26);
+        display.print(fokusMaksimal ? ">" : " ");
+        display.print(" Maksimal: [");
+        if (fokusMaksimal && bufferMaksimal.length() > 0) {
+          display.print(bufferMaksimal);
+        } else {
+          display.print(kapasitasMaksimal);
+        }
+        display.print("]");
+
+        // Baris 3 & 4: Panduan Tombol Ringkas
+        display.setCursor(0, 40);
+        display.print("A:Pilih Field  *:Del");
+
+        display.setCursor(0, 52);
+        display.print("#:Simpan       C:Batal");
       }
       break;
     }

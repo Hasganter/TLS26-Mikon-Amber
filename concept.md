@@ -48,7 +48,7 @@ TLS26-Mikon-Amber/
 ├── wokwi.toml                       # File konfigurasi loader firmware Wokwi
 ├── libraries.txt                    # Dependensi library Wokwi
 └── src/
-    ├── DisplayManager.cpp           # Engine visual rendering grafis OLED 128x64
+    ├── DisplayManager.cpp           # Engine visual rendering grafis OLED 128x64 & auto-scroll helper
     ├── GateServo.cpp                # Driver pergerakan motor servo SG90
     ├── KeypadManager.cpp            # Driver scanning matriks 4x4 keypad membran
     ├── StorageManager.cpp           # Driver persistensi NVS Flash (Preferences)
@@ -66,9 +66,9 @@ TLS26-Mikon-Amber/
 
 ---
 
-## 3. Parameter Sistem & Nilai Default Saat Ini
+## 3. Parameter Sistem & Nilai Penyimpanan Dinamis (NVS Flash)
 
-- **Kapasitas Maksimal (`KAPASITAS_MAKSIMAL`)**: `5` slot (konstanta pada `Config.h`).
+- **Kapasitas Maksimal (`kapasitasMaksimal`)**: Default `5` slot (`DEFAULT_KAPASITAS_MAKSIMAL`), disimpan dan dapat dikonfigurasi dinamis via NVS Flash (`namespace: "parking"`, `key: "max_slots"`).
 - **Slot Tersedia Saat Ini (`slotTersedia`)**: Dimuat dan disimpan permanen pada NVS namespace `"parking"`, key `"slots"`.
 - **Ambang Deteksi Jarak (`AMBANG_DETEKSI_CM`)**: `40.0 cm`.
 - **Pewaktu Siklus Standby (`PERIODE_STANDBY_SCREEN`)**: `30000 ms` (30 detik).
@@ -84,24 +84,21 @@ TLS26-Mikon-Amber/
 
 Status sistem diatur melalui enum `StatusSistem` dengan 8 state:
 
-### 1. `STATUS_STANDBY` (Standby & Informasi Real-Time)
-Kondisi normal saat tidak ada aktivitas di kedua lane:
-- **Header Layar (Semua Mode Standby)**:
-  - Sisi Kiri: `SLOT: {slotTersedia}/{kapasitasMaksimal}`
-  - Sisi Kanan: `HH:MM:SS` (Jam real-time)
-  - Garis pemisah horizontal di baris $y = 10$.
-- **Kondisi A: Normal (Slot > 0 & Tidak Ada Kendaraan)**:
-  Layar berganti otomatis setiap 30 detik:
-  - **Tampilan Standby A**: Teks utama `"SELAMAT DATANG"` (Size 2), baris bawah `"Tekan Tombol Utk Masuk"` (Size 1).
-  - **Tampilan Standby B**: Teks utama `Nama Hari, DD/MM/YYYY` (Size 1), jam digital besar (Size 2), dan baris bawah `"Slot Tersedia: {slot}"` (Size 1).
-- **Kondisi B: Kendaraan Mendekat di Lane Masuk (`jarakKiri < 40 cm`)**:
-  - Teks atas: `"Kendaraan Terdeteksi!"` (Size 1).
-  - Teks utama: `"TEKAN TOMBOL TIKET"` (Size 2).
-- **Kondisi C: Parkir Penuh (`slotTersedia <= 0`)**:
-  - Teks utama: `"PARKIR PENUH!"` (Size 2).
-  - Baris bawah: `"Gerbang Masuk Terkunci"` (Size 1).
-  - Menekan tombol keypad ditolak (tidak memulai hitung mundur masuk).
-  - Tombol kombinasi Debug Mode tetap dapat diakses.
+### 1. `STATUS_STANDBY` (Dashboard Bersih & Slot Utama di Tengah)
+Header pemisah ditiadakan agar layar bersih dan fokus pada informasi ketersediaan slot:
+- **Area Atas ($y = 2$)**: Judul status ringkas (Size 1)
+  - Standby Mode A: `"SELAMAT DATANG"`
+  - Standby Mode B: `"STATUS PARKIR"`
+  - Kendaraan Mendekat: `"KENDARAAN MASUK"`
+  - Parkir Penuh: `"! PARKIR PENUH !"`
+- **Area Tengah ($y = 16\text{--}44$)**:
+  - **Slot Tersedia (Normal)**: Menampilkan kartu angka besar **Size 3** di tengah layar (misal `3/5`), dibingkai garis horizontal atas dan bawah ($y = 14$ dan $y = 45$).
+  - **Kendaraan Mendekat (`jarakKiri < 40 cm`)**: Teks Size 2 tebal `"TEKAN TIKET"`.
+  - **Parkir Penuh (`slotTersedia <= 0`)**: Teks Size 3 besar `"PENUH"`.
+- **Area Bawah ($y = 52$)**:
+  - Standby Mode A: `"Tekan Tombol Tiket"`
+  - Standby Mode B: Waktu real-time ringkas `Hari, HH:MM:SS` (misal `"Rabu, 21:45:00"`).
+  - Parkir Penuh: `"Gerbang Dikunci"`
 
 ---
 
@@ -124,11 +121,11 @@ Dipicu saat pengunjung menekan tombol keypad apapun di lane masuk ketika slot te
 - Motor servo bergerak ke sudut **90°** (terbuka).
 - Header Layar: `[ PORTAL TERBUKA ]`
 - **Safety Hold**:
-  - Selama sensor kiri mendeteksi kendaraan melintas di bawah portal (`jarakKiri < 40 cm`), layar menampilkan `"Status: Mobil Melintas"` & `"SILAKAN MASUK"`.
+  - Selama sensor kiri mendeteksi kendaraan melintas di bawah portal (`jarakKiri < 40 cm`), layar menampilkan `"Mobil Sedang Lewat"` & `"MASUK"` (Size 2).
   - Timer penutupan ditahan (portal tidak akan menutup selama mobil masih di bawah portal).
 - **Penutupan Aman (Mobil Telah Lewat)**:
   - Begitu sensor kiri tidak lagi mendeteksi objek, sistem memulai hitung mundur aman **5 detik**.
-  - Layar menampilkan `"Mobil Selesai Lewat!"` dan hitung mundur `"Tutup Gate dalam: {s}s"`.
+  - Layar menampilkan `"Mobil Selesai Lewat"` dan hitung mundur `"Tutup Gate dalam: {s}s"`.
   - Jika 5 detik selesai tanpa ada halangan baru: servo kembali ke **0°** (tutup), slot berkurang 1 (`slotTersedia--`), nilai baru disimpan permanen ke NVS, dan kembali ke `STATUS_STANDBY`.
 - **Safety Timeout (30 Detik)**:
   - Jika mobil tidak pernah lewat dalam 30 detik: servo kembali ke **0°**.
@@ -139,9 +136,9 @@ Dipicu saat pengunjung menekan tombol keypad apapun di lane masuk ketika slot te
 ### 4. `STATUS_LANE_KELUAR` (Lane Kanan Otomatis)
 Dipicu saat sensor ultrasonik lane kanan mendeteksi kendaraan keluar (`jarakKanan < 40 cm`):
 - Header Layar: `[ LANE KELUAR ]`
-- Teks utama: `"SAMPAI JUMPA LAGI"` (Size 2) dan baris bawah `"Hati-hati di jalan!"` (Size 1).
+- Teks utama: `"SAMPAI JUMPA!"` (Size 2) dan baris bawah `"Hati-hati di jalan!"` (Size 1).
 - Ketika kendaraan telah selesai melintas (sensor kanan kembali bebas `> 40 cm`):
-  - Slot parkir bertambah 1 (`slotTersedia++`), dibatasi maksimal `KAPASITAS_MAKSIMAL`.
+  - Slot parkir bertambah 1 (`slotTersedia++`), dibatasi maksimal `kapasitasMaksimal`.
   - Nilai slot baru disimpan ke NVS Flash.
   - Delay feedback visual 800 ms, lalu kembali ke `STATUS_STANDBY`.
 
@@ -153,7 +150,7 @@ Menu utama konfigurasi:
 - Daftar Menu:
   - `1: Waktu  (HHMM)` $\to$ `STATUS_DEBUG_WAKTU`
   - `2: Tanggal(DDMMYYYY)` $\to$ `STATUS_DEBUG_TANGGAL`
-  - `3: Slot   (Manual)` $\to$ `STATUS_DEBUG_SLOT`
+  - `3: Slot Parkir` $\to$ `STATUS_DEBUG_SLOT`
   - `C: Keluar ke Standby`
 - **Auto Timeout 30 Detik**: Jika tidak ada penekanan tombol selama 30 detik, sistem otomatis keluar ke `STATUS_STANDBY`.
 
@@ -168,6 +165,7 @@ Menu utama konfigurasi:
 - Tombol `#`: Simpan ke Software RTC.
   - Validasi: Jam 00–23, Menit 00–59.
   - Feedback visual: `"Waktu Disimpan!"` atau `"Waktu Invalid!"` selama 2 detik.
+- Baris bawah: `"*:Hapus #:Ok C:Batal"` (bebas overflow).
 
 ---
 
@@ -180,16 +178,30 @@ Menu utama konfigurasi:
 - Tombol `#`: Simpan ke Software RTC.
   - Validasi: Tanggal 1–31, Bulan 1–12, Tahun 2000–2099.
   - Feedback visual: `"Tanggal Disimpan!"` atau `"Tanggal Invalid!"` selama 2 detik.
+- Baris bawah: `"*:Hapus #:Ok C:Batal"` (bebas overflow).
 
 ---
 
-### 8. `STATUS_DEBUG_SLOT` (Sub-Menu Edit Slot Parkir)
-- Header: `[ ATUR SLOT MANUAL ]`
-- Tampilan saat ini:
-  - `Slot Skrg: {slotTersedia} / {kapasitasMaksimal}`
-  - Tombol `A`: Tambah 1 slot (`slotTersedia++`).
-  - Tombol `B`: Kurangi 1 slot (`slotTersedia--`).
-  - Input angka langsung: `0–{kapasitasMaksimal}`.
-  - Tombol `*`: Reset input buffer.
-  - Tombol `#`: Simpan ke NVS Flash.
-  - Tombol `C`: Kembali ke menu debug utama.
+### 8. `STATUS_DEBUG_SLOT` (Sub-Menu Edit Slot Parkir Terpadu)
+Layar konfigurasi terpadu untuk mengubah slot tersedia dan kapasitas maksimal secara bersamaan:
+- Header: `[ ATUR SLOT PARKIR ]`
+- Tampilan Field:
+  - Baris 1: `> Tersedia: [ x ]` (atau spasi jika tidak aktif)
+  - Baris 2: `  Maksimal: [ y ]` (atau `>` jika aktif)
+- Navigasi & Input:
+  - **Tombol `A`**: Beralih kursor/fokus aktif antara field `Tersedia` dan `Maksimal`.
+  - **Tombol `0–9`**: Mengetik nilai angka pada field aktif (maks 2 digit).
+  - **Tombol `*`**: Menghapus digit terakhir (*backspace*) pada field aktif.
+  - **Tombol `#`**: Memvalidasi dan menyimpan kedua nilai ke Flash NVS.
+    - *Aturan Validasi:* $1 \le \text{Maksimal} \le 99$ dan $0 \le \text{Tersedia} \le \text{Maksimal}$.
+    - *Feedback Visual:* `"Slot Disimpan!"` jika valid, atau `"Nilai Invalid!"` jika salah.
+  - **Tombol `C`**: Membatalkan perubahan dan kembali ke menu utama debug.
+
+---
+
+## 5. Fitur Auto-Scroll Horizontal Text Ticker
+
+Untuk mencegah teks terpotong di tepi kanan layar OLED 128x64:
+- Engine `DisplayManager::drawTextScroll` secara otomatis memeriksa panjang piksel teks ($L \times 6 \times \text{Size}$).
+- Jika panjang teks $\le 128\text{px}$, teks dicetak statis (tengah/rapi).
+- Jika panjang teks $> 128\text{px}$, sistem menjalankan animasi geser horizontal mulus (*marquee*) dengan jeda 1.2 detik di awal sebelum mulai bergeser pada kecepatan 35 ms per piksel.

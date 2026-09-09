@@ -38,7 +38,7 @@ const byte PIN_KEYPAD_KOLOM[KEYPAD_KOLOM] = { 26, 25, 33, 32 };  // C1, C2, C3, 
 // PARAMETER SISTEM & TIMING
 // ═════════════════════════════════════════════════════════════
 
-const int KAPASITAS_MAKSIMAL = 5;
+const int DEFAULT_KAPASITAS_MAKSIMAL = 5;
 const float AMBANG_DETEKSI_CM = 40.0f;  // Batas jarak deteksi kendaraan (cm)
 
 // Konstanta Waktu (dalam milidetik)
