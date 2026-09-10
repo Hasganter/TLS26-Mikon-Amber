@@ -85,7 +85,7 @@ void UIViewDebug::renderSlot(Adafruit_SSD1306 &display, const UIState &state) {
     // Baris 1: Slot Tersedia (Menampilkan nilai sebelumnya dan nilai baru)
     display.setCursor(0, 14);
     display.print(!state.fokusMaksimal ? ">" : " ");
-    display.print("Tersedia: ");
+    display.print("Slot: ");
     display.print(state.slotTersedia);
     display.print(" -> [");
     if (!state.fokusMaksimal && state.bufferTersedia.length() > 0) {
@@ -98,7 +98,7 @@ void UIViewDebug::renderSlot(Adafruit_SSD1306 &display, const UIState &state) {
     // Baris 2: Kapasitas Maksimal (Menampilkan nilai sebelumnya dan nilai baru)
     display.setCursor(0, 26);
     display.print(state.fokusMaksimal ? ">" : " ");
-    display.print("Maksimal: ");
+    display.print("Maks: ");
     display.print(state.kapasitasMaksimal);
     display.print(" -> [");
     if (state.fokusMaksimal && state.bufferMaksimal.length() > 0) {
@@ -113,7 +113,7 @@ void UIViewDebug::renderSlot(Adafruit_SSD1306 &display, const UIState &state) {
     display.print("A:Pilih Field  *:Del");
 
     display.setCursor(0, 52);
-    display.print("#:Simpan       C:Batal");
+    display.print("#:Simpan     C:Batal");
   }
 }
 
@@ -122,16 +122,16 @@ void UIViewDebug::renderWiFiScan(Adafruit_SSD1306 &display, const UIState &state
   int currentItem = state.wifiSelectedIndex + 1;
 
   char titleBuf[32];
-  sprintf(titleBuf, "[ PILIH WIFI (%d/%d) ]", currentItem, totalItems);
+  sprintf(titleBuf, "[ WIFI %d/%d (A/B) ]", currentItem, totalItems);
   UIHelper::drawHeader(display, titleBuf);
 
   if (state.isScanningWiFi) {
     display.setTextSize(1);
-    display.setCursor(8, 20);
-    display.print("Memindai Jaringan...");
-    display.setCursor(16, 34);
+    display.setCursor(16, 20);
+    display.print("Memindai WiFi...");
+    display.setCursor(19, 34);
     display.print("Mohon tunggu...");
-    UIHelper::drawFooter(display, "C: Batalkan", "");
+    UIHelper::drawFooter(display, "C: Batal", "");
     return;
   }
 
@@ -163,7 +163,7 @@ void UIViewDebug::renderWiFiScan(Adafruit_SSD1306 &display, const UIState &state
     }
   }
 
-  UIHelper::drawFooter(display, "A:Up B:Dn #:Pilih", "*:Scan C:Batal");
+  UIHelper::drawFooter(display, "#:Pilih *:Scan", "C:Batal");
 }
 
 void UIViewDebug::renderWiFiPassword(Adafruit_SSD1306 &display, const UIState &state) {
@@ -172,23 +172,31 @@ void UIViewDebug::renderWiFiPassword(Adafruit_SSD1306 &display, const UIState &s
   display.setTextSize(1);
   display.setCursor(0, 14);
   display.print("SSID: ");
-  display.print(state.wifiTargetSSID);
+  String showSSID = state.wifiTargetSSID;
+  if (showSSID.length() > 14) {
+    showSSID = showSSID.substring(0, 13) + "~";
+  }
+  display.print(showSSID);
 
   display.setCursor(0, 26);
   display.print("Pass: [");
-  display.print(state.t9DisplayText);
+  String showPass = state.t9DisplayText;
+  if (showPass.length() > 12) {
+    showPass = "~" + showPass.substring(showPass.length() - 11);
+  }
+  display.print(showPass);
   display.print("]");
 
   display.setCursor(0, 40);
-  display.print("Mode: [");
+  display.print("Mode:[");
   display.print(state.t9ModeStr);
   display.print("] B:Spasi");
 
-  UIHelper::drawFooter(display, "*:Del D:Mode", "#:Konek C:Batal");
+  UIHelper::drawFooter(display, "*:Del D:Md", "#:Ok C:Btl");
 }
 
 void UIViewDebug::renderWiFiManual(Adafruit_SSD1306 &display, const UIState &state) {
-  UIHelper::drawHeader(display, "[ INPUT SSID MANUAL ]");
+  UIHelper::drawHeader(display, "[ INPUT SSID ]");
 
   display.setTextSize(1);
   display.setCursor(0, 14);
@@ -196,15 +204,19 @@ void UIViewDebug::renderWiFiManual(Adafruit_SSD1306 &display, const UIState &sta
 
   display.setCursor(0, 26);
   display.print("SSID: [");
-  display.print(state.t9DisplayText);
+  String showSSID = state.t9DisplayText;
+  if (showSSID.length() > 12) {
+    showSSID = "~" + showSSID.substring(showSSID.length() - 11);
+  }
+  display.print(showSSID);
   display.print("]");
 
   display.setCursor(0, 40);
-  display.print("Mode: [");
+  display.print("Mode:[");
   display.print(state.t9ModeStr);
   display.print("] B:Spasi");
 
-  UIHelper::drawFooter(display, "*:Del D:Mode", "#:Lanjut C:Batal");
+  UIHelper::drawFooter(display, "*:Del D:Md", "#:Ok C:Btl");
 }
 
 void UIViewDebug::renderWiFiStatus(Adafruit_SSD1306 &display, const UIState &state) {
@@ -215,24 +227,28 @@ void UIViewDebug::renderWiFiStatus(Adafruit_SSD1306 &display, const UIState &sta
     display.setCursor(0, 16);
     display.print("Menghubungkan ke:");
     display.setCursor(0, 28);
-    display.print(state.wifiTargetSSID);
+    String showSSID = state.wifiTargetSSID;
+    if (showSSID.length() > 20) {
+      showSSID = showSSID.substring(0, 19) + "~";
+    }
+    display.print(showSSID);
 
     display.setCursor(0, 42);
     display.print("Mohon tunggu...");
-    UIHelper::drawFooter(display, "C: Batalkan", "");
+    UIHelper::drawFooter(display, "C: Batal", "");
   } else if (state.wifiStatus == WIFI_STATUS_CONNECTED) {
-    display.setCursor(10, 16);
+    display.setCursor(16, 16);
     display.print("WIFI TERHUBUNG!");
 
     display.setCursor(0, 30);
     display.print("IP: ");
     display.print(state.wifiAssignedIP);
 
-    display.setCursor(0, 44);
-    display.print("Disimpan ke Flash NVS");
+    display.setCursor(10, 44);
+    display.print("Tersimpan di Flash");
     UIHelper::drawFooter(display, "#: Selesai", "");
   } else {
-    display.setCursor(14, 16);
+    display.setCursor(20, 16);
     display.print("KONEKSI GAGAL!");
 
     display.setCursor(0, 30);

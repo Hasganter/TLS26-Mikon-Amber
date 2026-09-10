@@ -43,8 +43,8 @@ void DisplayManager::render(const UIState &state, const WiFiManager &wifi) {
     butuhRender = true;
   }
 
-  // Jika ada animasi teks berjalan (pada mode standby atau countdown)
-  if (state.status == STATUS_STANDBY || state.status == STATUS_LANE_KELUAR) {
+  // Jika ada animasi teks berjalan (pada mode standby atau countdown), atau sedang scan/connecting WiFi
+  if (state.status == STATUS_STANDBY || state.status == STATUS_LANE_KELUAR || state.isScanningWiFi || state.wifiStatus == WIFI_STATUS_CONNECTING) {
     if (sekarang - waktuRenderTerakhir >= 35) {
       butuhRender = true;
     }
@@ -100,7 +100,11 @@ void DisplayManager::render(const UIState &state, const WiFiManager &wifi) {
       break;
 
     case STATUS_DEBUG_WIFI_PASS:
-      UIViewDebug::renderWiFiPassword(display, state);
+      if (state.wifiStatus != WIFI_STATUS_DISCONNECTED) {
+        UIViewDebug::renderWiFiStatus(display, state);
+      } else {
+        UIViewDebug::renderWiFiPassword(display, state);
+      }
       break;
 
     case STATUS_DEBUG_WIFI_MANUAL:

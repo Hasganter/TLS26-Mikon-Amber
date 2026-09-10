@@ -45,7 +45,9 @@ void UIHelper::drawTextScroll(
 
 void UIHelper::drawHeader(Adafruit_SSD1306 &display, const char* title) {
   display.setTextSize(1);
-  display.setCursor(0, 0);
+  int titleLen = strlen(title) * 6;
+  int16_t x = (titleLen < SCREEN_WIDTH) ? (int16_t)((SCREEN_WIDTH - titleLen) / 2) : 0;
+  display.setCursor(x, 0);
   display.print(title);
   display.drawLine(0, 9, 128, 9, SSD1306_WHITE);
 }
@@ -56,7 +58,12 @@ void UIHelper::drawFooter(Adafruit_SSD1306 &display, const char* leftGuide, cons
   display.print(leftGuide);
   if (rightGuide && strlen(rightGuide) > 0) {
     int rightLen = strlen(rightGuide) * 6;
-    display.setCursor(SCREEN_WIDTH - rightLen, 56);
+    int16_t xRight = SCREEN_WIDTH - rightLen;
+    int leftLen = strlen(leftGuide) * 6;
+    if (xRight < leftLen + 6) {
+      xRight = leftLen + 6;
+    }
+    display.setCursor(xRight, 56);
     display.print(rightGuide);
   }
 }
