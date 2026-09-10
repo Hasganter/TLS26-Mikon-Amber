@@ -33,11 +33,9 @@ void DebugController::handleLoop(StatusSistem &status, char tombol, unsigned lon
   inputHelper.update();
 
   switch (status) {
-    // ─────────────────────────────────────────────────────────
     // STATUS_DEBUG_MENU: Menu Utama Konfigurasi
-    // ─────────────────────────────────────────────────────────
     case STATUS_DEBUG_MENU: {
-      if (tombol != '\0' && tombol != NO_KEY) {
+      if (tombol != '\0') {
         resetActivity(sekarang);
         bufferInput = "";
         pesanFeedback = "";
@@ -63,9 +61,7 @@ void DebugController::handleLoop(StatusSistem &status, char tombol, unsigned lon
       break;
     }
 
-    // ─────────────────────────────────────────────────────────
     // STATUS_DEBUG_WAKTU: Pengaturan Waktu (HHMMSS)
-    // ─────────────────────────────────────────────────────────
     case STATUS_DEBUG_WAKTU: {
       if (pesanFeedback.length() > 0 && sekarang - waktuFeedback >= 2000) {
         pesanFeedback = "";
@@ -73,7 +69,7 @@ void DebugController::handleLoop(StatusSistem &status, char tombol, unsigned lon
         break;
       }
 
-      if (tombol != '\0' && tombol != NO_KEY && pesanFeedback.length() == 0) {
+      if (tombol != '\0' && pesanFeedback.length() == 0) {
         resetActivity(sekarang);
         if (tombol >= '0' && tombol <= '9') {
           if (bufferInput.length() < 6) bufferInput += tombol;
@@ -94,9 +90,7 @@ void DebugController::handleLoop(StatusSistem &status, char tombol, unsigned lon
       break;
     }
 
-    // ─────────────────────────────────────────────────────────
     // STATUS_DEBUG_TANGGAL: Pengaturan Tanggal (DDMMYYYY)
-    // ─────────────────────────────────────────────────────────
     case STATUS_DEBUG_TANGGAL: {
       if (pesanFeedback.length() > 0 && sekarang - waktuFeedback >= 2000) {
         pesanFeedback = "";
@@ -104,7 +98,7 @@ void DebugController::handleLoop(StatusSistem &status, char tombol, unsigned lon
         break;
       }
 
-      if (tombol != '\0' && tombol != NO_KEY && pesanFeedback.length() == 0) {
+      if (tombol != '\0' && pesanFeedback.length() == 0) {
         resetActivity(sekarang);
         if (tombol >= '0' && tombol <= '9') {
           if (bufferInput.length() < 8) bufferInput += tombol;
@@ -125,9 +119,7 @@ void DebugController::handleLoop(StatusSistem &status, char tombol, unsigned lon
       break;
     }
 
-    // ─────────────────────────────────────────────────────────
     // STATUS_DEBUG_SLOT: Pengaturan Slot Parkir Terpadu (Max 999)
-    // ─────────────────────────────────────────────────────────
     case STATUS_DEBUG_SLOT: {
       if (pesanFeedback.length() > 0 && sekarang - waktuFeedback >= 2000) {
         pesanFeedback = "";
@@ -135,7 +127,7 @@ void DebugController::handleLoop(StatusSistem &status, char tombol, unsigned lon
         break;
       }
 
-      if (tombol != '\0' && tombol != NO_KEY && pesanFeedback.length() == 0) {
+      if (tombol != '\0' && pesanFeedback.length() == 0) {
         resetActivity(sekarang);
 
         if (tombol == 'A') {
@@ -177,13 +169,11 @@ void DebugController::handleLoop(StatusSistem &status, char tombol, unsigned lon
       break;
     }
 
-    // ─────────────────────────────────────────────────────────
     // STATUS_DEBUG_WIFI_SCAN: Pemindaian & Pemilihan Jaringan WiFi
-    // ─────────────────────────────────────────────────────────
     case STATUS_DEBUG_WIFI_SCAN: {
       int totalItems = wifi.getJumlahJaringan() + 1; // Termasuk [+ Input Manual]
 
-      if (tombol != '\0' && tombol != NO_KEY) {
+      if (tombol != '\0') {
         resetActivity(sekarang);
 
         if (tombol == 'C') {
@@ -220,17 +210,19 @@ void DebugController::handleLoop(StatusSistem &status, char tombol, unsigned lon
               status = STATUS_DEBUG_WIFI_MANUAL;
             } else {
               int netIdx = wifiSelectedIndex - 1;
-              wifiTargetSSID = wifi.getSSID(netIdx);
+              if (netIdx >= 0 && netIdx < wifi.getJumlahJaringan()) {
+                wifiTargetSSID = wifi.getSSID(netIdx);
 
-              if (!wifi.isEncrypted(netIdx)) {
-                // Jaringan terbuka (tanpa password): langsung hubungkan!
-                wifi.hubungkan(wifiTargetSSID, "");
-                status = STATUS_DEBUG_WIFI_PASS; // Menampilkan status koneksi
-              } else {
-                // Jaringan ber-password
-                inputHelper.reset("");
-                inputHelper.setMode(MODE_abc);
-                status = STATUS_DEBUG_WIFI_PASS;
+                if (!wifi.isEncrypted(netIdx)) {
+                  // Jaringan terbuka (tanpa password): langsung hubungkan!
+                  wifi.hubungkan(wifiTargetSSID, "");
+                  status = STATUS_DEBUG_WIFI_PASS; // Menampilkan status koneksi
+                } else {
+                  // Jaringan ber-password
+                  inputHelper.reset("");
+                  inputHelper.setMode(MODE_abc);
+                  status = STATUS_DEBUG_WIFI_PASS;
+                }
               }
             }
           }
@@ -239,11 +231,9 @@ void DebugController::handleLoop(StatusSistem &status, char tombol, unsigned lon
       break;
     }
 
-    // ─────────────────────────────────────────────────────────
     // STATUS_DEBUG_WIFI_MANUAL: Input Manual SSID via T9
-    // ─────────────────────────────────────────────────────────
     case STATUS_DEBUG_WIFI_MANUAL: {
-      if (tombol != '\0' && tombol != NO_KEY) {
+      if (tombol != '\0') {
         resetActivity(sekarang);
 
         if (tombol == 'C') {
@@ -262,9 +252,7 @@ void DebugController::handleLoop(StatusSistem &status, char tombol, unsigned lon
       break;
     }
 
-    // ─────────────────────────────────────────────────────────
     // STATUS_DEBUG_WIFI_PASS: Input Password / Status Koneksi
-    // ─────────────────────────────────────────────────────────
     case STATUS_DEBUG_WIFI_PASS: {
       WiFiConnectionStatus stat = wifi.getStatusKoneksi();
 
@@ -289,7 +277,7 @@ void DebugController::handleLoop(StatusSistem &status, char tombol, unsigned lon
         }
       } else {
         // Form pengetikan password via T9
-        if (tombol != '\0' && tombol != NO_KEY) {
+        if (tombol != '\0') {
           resetActivity(sekarang);
 
           if (tombol == 'C') {

@@ -3,10 +3,7 @@
 
 #include <Arduino.h>
 
-// ═════════════════════════════════════════════════════════════
 // STATUS SISTEM (FINITE STATE MACHINE)
-// ═════════════════════════════════════════════════════════════
-
 enum StatusSistem {
   STATUS_STANDBY,          // Standby menampilkan info slot besar & waktu
   STATUS_COUNTDOWN_5S,      // Hitung mundur 5 detik buka gate (failsafe / cancel)
@@ -21,20 +18,14 @@ enum StatusSistem {
   STATUS_DEBUG_WIFI_MANUAL  // Sub-menu input manual SSID WiFi via T9
 };
 
-// ═════════════════════════════════════════════════════════════
 // MODE INPUT TEKS KEYPAD (MULTI-TAP T9)
-// ═════════════════════════════════════════════════════════════
-
 enum InputMode {
   MODE_ABC,  // Huruf kapital (A-Z)
   MODE_abc,  // Huruf kecil (a-z)
   MODE_123   // Angka langsung (0-9)
 };
 
-// ═════════════════════════════════════════════════════════════
 // STATUS KONEKSI WIFI
-// ═════════════════════════════════════════════════════════════
-
 enum WiFiConnectionStatus {
   WIFI_STATUS_DISCONNECTED,
   WIFI_STATUS_SCANNING,
@@ -43,10 +34,7 @@ enum WiFiConnectionStatus {
   WIFI_STATUS_FAILED
 };
 
-// ═════════════════════════════════════════════════════════════
 // STRUCT BUNDLE DATA UNTUK RENDERING UI
-// ═════════════════════════════════════════════════════════════
-
 struct UIState {
   StatusSistem status;
   int slotTersedia;

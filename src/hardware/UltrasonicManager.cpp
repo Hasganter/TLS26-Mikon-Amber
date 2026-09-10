@@ -20,8 +20,8 @@ float UltrasonicManager::bacaSensor(uint8_t pinTrig, uint8_t pinEcho) {
   delayMicroseconds(10);
   digitalWrite(pinTrig, LOW);
 
-  // Batasi timeout 20000 us (~3.4 meter) agar tidak memblokir loop utama
-  unsigned long durasi = pulseIn(pinEcho, HIGH, 20000);
+  // Batasi timeout 12000 us (~2.0 meter) agar tidak memblokir loop utama
+  unsigned long durasi = pulseIn(pinEcho, HIGH, 12000);
   if (durasi == 0) return 999.0f;
   return (durasi * 0.0343f) / 2.0f;
 }

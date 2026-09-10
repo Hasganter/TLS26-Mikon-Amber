@@ -22,11 +22,15 @@ void StorageManager::inisialisasi(int defaultMaxSlots, int &outSlotTersedia, int
 }
 
 void StorageManager::simpanSlot(int nilaiSlot) {
-  prefs.putInt("slots", nilaiSlot);
+  if (prefs.getInt("slots", -1) != nilaiSlot) {
+    prefs.putInt("slots", nilaiSlot);
+  }
 }
 
 void StorageManager::simpanKapasitasMaksimal(int nilaiMax) {
-  prefs.putInt("max_slots", nilaiMax);
+  if (prefs.getInt("max_slots", -1) != nilaiMax) {
+    prefs.putInt("max_slots", nilaiMax);
+  }
 }
 
 void StorageManager::simpanWiFi(const String &ssid, const String &password) {
