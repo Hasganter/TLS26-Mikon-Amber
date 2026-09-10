@@ -1,7 +1,9 @@
-#pragma once
+#ifndef KEYPAD_MANAGER_H
+#define KEYPAD_MANAGER_H
+
 #include <Arduino.h>
 #include <Keypad.h>
-#include "Config.h"
+#include "../config/Config.h"
 
 class KeypadManager {
 public:
@@ -16,3 +18,5 @@ private:
   byte pinKolom[KEYPAD_KOLOM];
   Keypad keypad;
 };
+
+#endif // KEYPAD_MANAGER_H

@@ -1,6 +1,8 @@
-#pragma once
+#ifndef ULTRASONIC_MANAGER_H
+#define ULTRASONIC_MANAGER_H
+
 #include <Arduino.h>
-#include "Config.h"
+#include "../config/Config.h"
 
 class UltrasonicManager {
 public:
@@ -28,3 +30,5 @@ private:
   float jarakKiri;
   float jarakKanan;
 };
+
+#endif // ULTRASONIC_MANAGER_H

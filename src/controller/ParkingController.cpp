@@ -1,0 +1,234 @@
+#include "ParkingController.h"
+
+ParkingController::ParkingController(GateServo &g, UltrasonicManager &u, StorageManager &s)
+  : gate(g),
+    ultrasonic(u),
+    storage(s),
+    slotTersedia(DEFAULT_KAPASITAS_MAKSIMAL),
+    kapasitasMaksimal(DEFAULT_KAPASITAS_MAKSIMAL),
+    waktuSiklusStandby(0),
+    layarStandbyModeA(true),
+    waktuMulaiCountdown5s(0),
+    waktuMulaiGateBuka(0),
+    waktuMobilSelesaiLewat(0),
+    mobilSedangDiBawahGate(false),
+    mobilPernahTerdeteksiDiGate(false),
+    gateDibukaLewatSensor(false),
+    hitunganTombolD(0) {}
+
+void ParkingController::inisialisasi() {
+  storage.inisialisasi(DEFAULT_KAPASITAS_MAKSIMAL, slotTersedia, kapasitasMaksimal);
+  waktuSiklusStandby = millis();
+}
+
+void ParkingController::handleLoop(StatusSistem &status, char tombol, unsigned long sekarang) {
+  switch (status) {
+    // ─────────────────────────────────────────────────────────
+    // STATUS_STANDBY: Alur Default 1 & Deteksi Masuk/Keluar
+    // ─────────────────────────────────────────────────────────
+    case STATUS_STANDBY: {
+      // Siklus 30 detik berganti antara Mode A dan Mode B
+      if (sekarang - waktuSiklusStandby >= PERIODE_STANDBY_SCREEN) {
+        waktuSiklusStandby = sekarang;
+        layarStandbyModeA = !layarStandbyModeA;
+      }
+
+      // Deteksi mobil keluar di Lane Kanan
+      if (ultrasonic.isMobilTerdeteksiKanan()) {
+        status = STATUS_LANE_KELUAR;
+        Serial.println("[LANE KELUAR] Mobil terdeteksi keluar.");
+        break;
+      }
+
+      // Deteksi tombol keypad
+      if (tombol != '\0' && tombol != NO_KEY) {
+        Serial.printf("[KEYPAD] Tombol ditekan: %c\n", tombol);
+
+        // Jika parkir penuh: tolak pembukaan portal
+        if (slotTersedia <= 0) {
+          Serial.println("[MASUK] Ditolak: Parkir Penuh!");
+        } else {
+          status = STATUS_COUNTDOWN_5S;
+          waktuMulaiCountdown5s = sekarang;
+          hitunganTombolD = 0;
+
+          // Fast Bypass: jika mobil sudah di depan sensor kiri, langsung buka
+          if (ultrasonic.isMobilTerdeteksiKiri()) {
+            Serial.println("[MASUK] Fast Bypass: Sensor kiri aktif, membuka gate.");
+            status = STATUS_GATE_TERBUKA;
+            waktuMulaiGateBuka = sekarang;
+            gateDibukaLewatSensor = true;
+            mobilSedangDiBawahGate = true;
+            mobilPernahTerdeteksiDiGate = true;
+            gate.buka();
+          }
+        }
+      }
+      break;
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // STATUS_COUNTDOWN_5S: Jendela Pembatalan & Pintasan Debug
+    // ─────────────────────────────────────────────────────────
+    case STATUS_COUNTDOWN_5S: {
+      if (tombol != '\0' && tombol != NO_KEY) {
+        if (tombol == 'C') {
+          Serial.println("[COUNTDOWN 5s] Dibatalkan oleh tombol C.");
+          status = STATUS_STANDBY;
+          waktuSiklusStandby = sekarang;
+          break;
+        } else if (tombol == 'D') {
+          hitunganTombolD++;
+          Serial.printf("[DEBUG SHORTCUT] D ke-%d\n", hitunganTombolD);
+          if (hitunganTombolD >= 3) {
+            Serial.println("[DEBUG MODE] Akses diterima!");
+            status = STATUS_DEBUG_MENU;
+            break;
+          }
+        } else {
+          hitunganTombolD = 0;
+        }
+      }
+
+      // Fast Bypass jika mobil mendekat selama countdown
+      if (ultrasonic.isMobilTerdeteksiKiri()) {
+        Serial.println("[COUNTDOWN 5s] Mobil terdeteksi! Fast bypass membuka gate.");
+        status = STATUS_GATE_TERBUKA;
+        waktuMulaiGateBuka = sekarang;
+        gateDibukaLewatSensor = true;
+        mobilSedangDiBawahGate = true;
+        mobilPernahTerdeteksiDiGate = true;
+        gate.buka();
+        break;
+      }
+
+      // Timeout 5 detik habis -> Buka Gate (Failsafe)
+      if (sekarang - waktuMulaiCountdown5s >= TIMEOUT_COUNTDOWN_5S) {
+        Serial.println("[COUNTDOWN 5s] Failsafe: Membuka gate.");
+        status = STATUS_GATE_TERBUKA;
+        waktuMulaiGateBuka = sekarang;
+        gateDibukaLewatSensor = false;
+        mobilSedangDiBawahGate = ultrasonic.isMobilTerdeteksiKiri();
+        mobilPernahTerdeteksiDiGate = mobilSedangDiBawahGate;
+        gate.buka();
+      }
+      break;
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // STATUS_GATE_TERBUKA: Mekanisme Portal Masuk & Safety Hold
+    // ─────────────────────────────────────────────────────────
+    case STATUS_GATE_TERBUKA: {
+      bool deteksiSekarang = ultrasonic.isMobilTerdeteksiKiri();
+
+      if (deteksiSekarang) {
+        mobilSedangDiBawahGate = true;
+        mobilPernahTerdeteksiDiGate = true;
+      } else {
+        if (mobilSedangDiBawahGate) {
+          mobilSedangDiBawahGate = false;
+          waktuMobilSelesaiLewat = sekarang;
+          Serial.println("[GATE] Mobil selesai lewat. Memulai hitung mundur 5s tutup.");
+        }
+      }
+
+      // Penutupan 5 Detik setelah mobil lewat
+      if (mobilPernahTerdeteksiDiGate && !mobilSedangDiBawahGate) {
+        if (sekarang - waktuMobilSelesaiLewat >= TIMEOUT_TUTUP_AMAN_5S) {
+          Serial.println("[GATE] Penutupan aman selesai. Tutup gate & kurangi slot.");
+          gate.tutup();
+          if (slotTersedia > 0) {
+            slotTersedia--;
+            storage.simpanSlot(slotTersedia);
+          }
+          status = STATUS_STANDBY;
+          waktuSiklusStandby = sekarang;
+          break;
+        }
+      }
+
+      // Safety Timeout 30 Detik
+      if (sekarang - waktuMulaiGateBuka >= TIMEOUT_GATE_OPEN_MAX) {
+        Serial.println("[GATE] Timeout 30 detik habis. Tutup gate.");
+        gate.tutup();
+
+        if (!gateDibukaLewatSensor) {
+          Serial.println("[GATE] Dibuka via tombol failsafe -> Kurangi slot.");
+          if (slotTersedia > 0) {
+            slotTersedia--;
+            storage.simpanSlot(slotTersedia);
+          }
+        }
+        status = STATUS_STANDBY;
+        waktuSiklusStandby = sekarang;
+      }
+      break;
+    }
+
+    // ─────────────────────────────────────────────────────────
+    // STATUS_LANE_KELUAR: Alur Keluar & Tambah Slot
+    // ─────────────────────────────────────────────────────────
+    case STATUS_LANE_KELUAR: {
+      if (!ultrasonic.isMobilTerdeteksiKanan()) {
+        Serial.println("[LANE KELUAR] Mobil selesai keluar. Tambah slot.");
+        if (slotTersedia < kapasitasMaksimal) {
+          slotTersedia++;
+          storage.simpanSlot(slotTersedia);
+        }
+        delay(800);
+        status = STATUS_STANDBY;
+        waktuSiklusStandby = sekarang;
+      }
+      break;
+    }
+
+    default:
+      break;
+  }
+}
+
+int ParkingController::getSlotTersedia() const {
+  return slotTersedia;
+}
+
+int ParkingController::getKapasitasMaksimal() const {
+  return kapasitasMaksimal;
+}
+
+void ParkingController::setSlotTersedia(int val) {
+  slotTersedia = val;
+}
+
+void ParkingController::setKapasitasMaksimal(int val) {
+  kapasitasMaksimal = val;
+}
+
+bool ParkingController::isLayarStandbyModeA() const {
+  return layarStandbyModeA;
+}
+
+unsigned long ParkingController::getSisaCountdown5s() const {
+  unsigned long sekarang = millis();
+  unsigned long durasi = sekarang - waktuMulaiCountdown5s;
+  return (durasi < TIMEOUT_COUNTDOWN_5S) ? (TIMEOUT_COUNTDOWN_5S - durasi) : 0;
+}
+
+bool ParkingController::isMobilSedangDiBawahGate() const {
+  return mobilSedangDiBawahGate;
+}
+
+bool ParkingController::isMobilPernahTerdeteksiDiGate() const {
+  return mobilPernahTerdeteksiDiGate;
+}
+
+unsigned long ParkingController::getSisaTutupAmanMs() const {
+  unsigned long sekarang = millis();
+  unsigned long durasi = sekarang - waktuMobilSelesaiLewat;
+  return (durasi < TIMEOUT_TUTUP_AMAN_5S) ? (TIMEOUT_TUTUP_AMAN_5S - durasi) : 0;
+}
+
+unsigned long ParkingController::getSisaTimeoutGateMs() const {
+  unsigned long sekarang = millis();
+  unsigned long durasi = sekarang - waktuMulaiGateBuka;
+  return (durasi < TIMEOUT_GATE_OPEN_MAX) ? (TIMEOUT_GATE_OPEN_MAX - durasi) : 0;
+}

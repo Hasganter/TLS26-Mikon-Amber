@@ -1,4 +1,6 @@
-#pragma once
+#ifndef TIME_MANAGER_H
+#define TIME_MANAGER_H
+
 #include <Arduino.h>
 #include <time.h>
 #include <sys/time.h>
@@ -11,7 +13,7 @@ public:
   // Dapatkan string waktu (HH:MM:SS), tanggal (DD/MM/YYYY), dan nama hari bahasa Indonesia
   static void dapatkanWaktuFormat(char* bufWaktu, char* bufTanggal, char* bufHari);
 
-  // Set waktu baru dari format HHMM (24h)
+  // Set waktu baru dari format HHMMSS (atau HHMM fallback)
   static bool setWaktuDariString(const String &str);
 
   // Set tanggal baru dari format DDMMYYYY
@@ -20,3 +22,5 @@ public:
 private:
   static const char* NAMA_HARI[];
 };
+
+#endif // TIME_MANAGER_H

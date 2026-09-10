@@ -2,93 +2,69 @@
  * Proyek: TLS26 Mikon Amber — Sistem Counter & Portal Parkir Otomatis Dual Lane
  * Platform: ESP32 DevKit C V4
  *
- * Struktur Berkas Modular (src/):
- *   - src/Config.h            : Definisi pinout, konstanta waktu, dan enum FSM
- *   - src/TimeManager.h/.cpp   : Software RTC (POSIX time, format, set waktu/tanggal)
- *   - src/StorageManager.h/.cpp: Non-Volatile Flash Storage (Preferences/NVS)
- *   - src/GateServo.h/.cpp     : Kontrol Motor Servo SG90 Portal Masuk
- *   - src/UltrasonicManager.h/.cpp : Polling non-blocking 2x sensor HC-SR04
- *   - src/KeypadManager.h/.cpp : Pembacaan matriks 4x4 keypad membran
- *   - src/DisplayManager.h/.cpp: Rendering antarmuka OLED 128x64 SSD1306
+ * Arsitektur Berkas Modular (src/):
+ *   - src/config/     : Config.h, SystemTypes.h
+ *   - src/hardware/   : GateServo, UltrasonicManager, KeypadManager
+ *   - src/system/     : StorageManager (NVS), TimeManager (Software RTC)
+ *   - src/input/      : KeypadInputHelper (Multi-Tap T9 Text Engine)
+ *   - src/network/    : WiFiManager (Async Scan & Connect)
+ *   - src/ui/         : DisplayManager, UIHelper, UIViewParking, UIViewDebug
+ *   - src/controller/ : ParkingController, DebugController
  */
 
-#include "src/include/Config.h"
-#include "src/include/TimeManager.h"
-#include "src/include/StorageManager.h"
-#include "src/include/GateServo.h"
-#include "src/include/UltrasonicManager.h"
-#include "src/include/KeypadManager.h"
-#include "src/include/DisplayManager.h"
+#include "src/config/Config.h"
+#include "src/config/SystemTypes.h"
+#include "src/hardware/GateServo.h"
+#include "src/hardware/UltrasonicManager.h"
+#include "src/hardware/KeypadManager.h"
+#include "src/system/StorageManager.h"
+#include "src/system/TimeManager.h"
+#include "src/network/WiFiManager.h"
+#include "src/ui/DisplayManager.h"
+#include "src/controller/ParkingController.h"
+#include "src/controller/DebugController.h"
 
 // ═════════════════════════════════════════════════════════════
-// INSTANSIASI MODUL MANAJER
+// INSTANSIASI MODUL & KONTROLER
 // ═════════════════════════════════════════════════════════════
 
 GateServo gate;
 UltrasonicManager ultrasonic;
 KeypadManager keypadMgr;
 StorageManager storage;
+WiFiManager wifi;
 DisplayManager displayMgr;
 
-// ═════════════════════════════════════════════════════════════
-// VARIABEL STATUS SISTEM & PEWAKTU
-// ═════════════════════════════════════════════════════════════
+ParkingController parking(gate, ultrasonic, storage);
+DebugController debugCtrl(parking, storage, wifi);
 
 StatusSistem statusSaatIni = STATUS_STANDBY;
-int kapasitasMaksimal = DEFAULT_KAPASITAS_MAKSIMAL;
-int slotTersedia = DEFAULT_KAPASITAS_MAKSIMAL;
-
-// Pewaktu siklus standby (30 detik per layar)
-unsigned long waktuSiklusStandby = 0;
-bool layarStandbyModeA = true;
-
-// Pewaktu alur masuk & gate
-unsigned long waktuMulaiCountdown5s = 0;
-unsigned long waktuMulaiGateBuka = 0;
-unsigned long waktuMobilSelesaiLewat = 0;
-bool mobilSedangDiBawahGate = false;
-bool mobilPernahTerdeteksiDiGate = false;
-bool gateDibukaLewatSensor = false;
-
-// Pelacakan tombol pintasan Debug Mode (Bebas + D + D + D)
-int hitunganTombolD = 0;
-
-// Variabel kerja Debug Mode
-String bufferInputDebug = "";
-String pesanFeedbackDebug = "";
-unsigned long waktuFeedbackDebug = 0;
-unsigned long waktuAktivitasDebugTerakhir = 0;
-bool fokusMaksimal = false;
-String bufferInputTersedia = "";
-String bufferInputMaksimal = "";
 
 // ═════════════════════════════════════════════════════════════
-// SETUP
+// SETUP SISTEM
 // ═════════════════════════════════════════════════════════════
 
 void setup() {
   Serial.begin(115200);
-  Serial.println("\n[SISTEM PARKIR] Memulai inisialisasi modul...");
+  Serial.println("\n[SISTEM PARKIR] Memulai inisialisasi modul modular...");
 
-  // Inisialisasi Layar OLED
+  // Inisialisasi Layar OLED SSD1306
   if (!displayMgr.inisialisasi()) {
     Serial.println("[DISPLAY] Gagal menginisialisasi OLED SSD1306!");
   }
 
-  // Inisialisasi Sensor Ultrasonik Ganda
+  // Inisialisasi Hardware
   ultrasonic.inisialisasi();
-
-  // Inisialisasi Motor Servo Gate
   gate.inisialisasi(PIN_SERVO_GATE);
 
-  // Inisialisasi NVS Flash Preferences
-  storage.inisialisasi(DEFAULT_KAPASITAS_MAKSIMAL, slotTersedia, kapasitasMaksimal);
-  Serial.printf("[NVS] Slot dimuat: %d / %d\n", slotTersedia, kapasitasMaksimal);
-
-  // Inisialisasi Software RTC
+  // Inisialisasi Software RTC & Storage
   TimeManager::inisialisasiWaktu();
+  parking.inisialisasi();
 
-  waktuSiklusStandby = millis();
+  // Inisialisasi Jaringan WiFi & Auto-Connect
+  wifi.inisialisasi();
+  wifi.autoConnectJikaTersimpan(storage);
+
   Serial.println("[SISTEM PARKIR] Seluruh modul siap beroperasi.");
 }
 
@@ -99,378 +75,50 @@ void setup() {
 void loop() {
   unsigned long sekarang = millis();
 
-  // 1. Perbarui pembacaan sensor ultrasonik non-blocking
+  // 1. Polling Sensor Ultrasonik & WiFi secara non-blocking
   ultrasonic.perbarui();
+  wifi.update();
 
-  // 2. Baca tombol keypad
+  // 2. Baca Tombol Keypad
   char tombol = keypadMgr.bacaTombol();
 
-  // 3. Logika State Machine
-  switch (statusSaatIni) {
-
-    // ─────────────────────────────────────────────────────────
-    // STATUS_STANDBY: Alur Default 1 & Deteksi Masuk/Keluar
-    // ─────────────────────────────────────────────────────────
-    case STATUS_STANDBY: {
-      // Pergantian layar A/B setiap 30 detik
-      if (sekarang - waktuSiklusStandby >= PERIODE_STANDBY_SCREEN) {
-        waktuSiklusStandby = sekarang;
-        layarStandbyModeA = !layarStandbyModeA;
-      }
-
-      // Deteksi Mobil Keluar di Lane Kanan
-      if (ultrasonic.isMobilTerdeteksiKanan()) {
-        statusSaatIni = STATUS_LANE_KELUAR;
-        Serial.println("[LANE KELUAR] Mobil terdeteksi keluar.");
-        break;
-      }
-
-      // Deteksi Tombol Keypad Ditekan
-      if (tombol != NO_KEY) {
-        Serial.printf("[KEYPAD] Tombol ditekan: %c\n", tombol);
-
-        // Jika parkir penuh: Tolak pembukaan gate
-        if (slotTersedia <= 0) {
-          Serial.println("[MASUK] Ditolak: Parkir Penuh!");
-        } else {
-          statusSaatIni = STATUS_COUNTDOWN_5S;
-          waktuMulaiCountdown5s = sekarang;
-          hitunganTombolD = 0;
-
-          // Fast Bypass: Jika mobil sudah di depan sensor kiri, langsung buka!
-          if (ultrasonic.isMobilTerdeteksiKiri()) {
-            Serial.println("[MASUK] Fast Bypass: Sensor kiri aktif, membuka gate.");
-            statusSaatIni = STATUS_GATE_TERBUKA;
-            waktuMulaiGateBuka = sekarang;
-            gateDibukaLewatSensor = true;
-            mobilSedangDiBawahGate = true;
-            mobilPernahTerdeteksiDiGate = true;
-            gate.buka();
-          }
-        }
-      }
-      break;
-    }
-
-    // ─────────────────────────────────────────────────────────
-    // STATUS_COUNTDOWN_5S: Jendela Pembatalan & Pintasan Debug
-    // ─────────────────────────────────────────────────────────
-    case STATUS_COUNTDOWN_5S: {
-      if (tombol != NO_KEY) {
-        if (tombol == 'C') {
-          Serial.println("[COUNTDOWN 5s] Dibatalkan oleh tombol C.");
-          statusSaatIni = STATUS_STANDBY;
-          waktuSiklusStandby = sekarang;
-          break;
-        } else if (tombol == 'D') {
-          hitunganTombolD++;
-          Serial.printf("[DEBUG SHORTCUT] D ke-%d\n", hitunganTombolD);
-          if (hitunganTombolD >= 3) {
-            Serial.println("[DEBUG MODE] Akses diterima!");
-            statusSaatIni = STATUS_DEBUG_MENU;
-            waktuAktivitasDebugTerakhir = sekarang;
-            bufferInputDebug = "";
-            pesanFeedbackDebug = "";
-            break;
-          }
-        } else {
-          hitunganTombolD = 0;
-        }
-      }
-
-      // Fast Bypass jika mobil mendekat selama hitung mundur
-      if (ultrasonic.isMobilTerdeteksiKiri()) {
-        Serial.println("[COUNTDOWN 5s] Mobil terdeteksi! Fast bypass membuka gate.");
-        statusSaatIni = STATUS_GATE_TERBUKA;
-        waktuMulaiGateBuka = sekarang;
-        gateDibukaLewatSensor = true;
-        mobilSedangDiBawahGate = true;
-        mobilPernahTerdeteksiDiGate = true;
-        gate.buka();
-        break;
-      }
-
-      // Timeout 5 detik habis -> Buka Gate (Failsafe)
-      if (sekarang - waktuMulaiCountdown5s >= TIMEOUT_COUNTDOWN_5S) {
-        Serial.println("[COUNTDOWN 5s] Failsafe: Membuka gate.");
-        statusSaatIni = STATUS_GATE_TERBUKA;
-        waktuMulaiGateBuka = sekarang;
-        gateDibukaLewatSensor = false;
-        mobilSedangDiBawahGate = ultrasonic.isMobilTerdeteksiKiri();
-        mobilPernahTerdeteksiDiGate = mobilSedangDiBawahGate;
-        gate.buka();
-      }
-      break;
-    }
-
-    // ─────────────────────────────────────────────────────────
-    // STATUS_GATE_TERBUKA: Mekanisme Portal Masuk & Safety Hold
-    // ─────────────────────────────────────────────────────────
-    case STATUS_GATE_TERBUKA: {
-      bool deteksiSekarang = ultrasonic.isMobilTerdeteksiKiri();
-
-      if (deteksiSekarang) {
-        mobilSedangDiBawahGate = true;
-        mobilPernahTerdeteksiDiGate = true;
-      } else {
-        if (mobilSedangDiBawahGate) {
-          mobilSedangDiBawahGate = false;
-          waktuMobilSelesaiLewat = sekarang;
-          Serial.println("[GATE] Mobil selesai lewat. Memulai hitung mundur 5s tutup.");
-        }
-      }
-
-      // Penutupan 5 Detik setelah mobil lewat
-      if (mobilPernahTerdeteksiDiGate && !mobilSedangDiBawahGate) {
-        if (sekarang - waktuMobilSelesaiLewat >= TIMEOUT_TUTUP_AMAN_5S) {
-          Serial.println("[GATE] Penutupan aman selesai. Tutup gate & kurangi slot.");
-          gate.tutup();
-          if (slotTersedia > 0) {
-            slotTersedia--;
-            storage.simpanSlot(slotTersedia);
-          }
-          statusSaatIni = STATUS_STANDBY;
-          waktuSiklusStandby = sekarang;
-          break;
-        }
-      }
-
-      // Safety Timeout 30 Detik
-      if (sekarang - waktuMulaiGateBuka >= TIMEOUT_GATE_OPEN_MAX) {
-        Serial.println("[GATE] Timeout 30 detik habis. Tutup gate.");
-        gate.tutup();
-
-        if (!gateDibukaLewatSensor) {
-          Serial.println("[GATE] Dibuka via tombol failsafe -> Kurangi slot.");
-          if (slotTersedia > 0) {
-            slotTersedia--;
-            storage.simpanSlot(slotTersedia);
-          }
-        }
-        statusSaatIni = STATUS_STANDBY;
-        waktuSiklusStandby = sekarang;
-      }
-      break;
-    }
-
-    // ─────────────────────────────────────────────────────────
-    // STATUS_LANE_KELUAR: Alur Keluar & Tambah Slot
-    // ─────────────────────────────────────────────────────────
-    case STATUS_LANE_KELUAR: {
-      if (!ultrasonic.isMobilTerdeteksiKanan()) {
-        Serial.println("[LANE KELUAR] Mobil selesai keluar. Tambah slot.");
-        if (slotTersedia < kapasitasMaksimal) {
-          slotTersedia++;
-          storage.simpanSlot(slotTersedia);
-        }
-        delay(800);
-        statusSaatIni = STATUS_STANDBY;
-        waktuSiklusStandby = sekarang;
-      }
-      break;
-    }
-
-    // ─────────────────────────────────────────────────────────
-    // STATUS_DEBUG_MENU: Menu Utama Konfigurasi
-    // ─────────────────────────────────────────────────────────
-    case STATUS_DEBUG_MENU: {
-      if (sekarang - waktuAktivitasDebugTerakhir >= TIMEOUT_DEBUG_MS) {
-        statusSaatIni = STATUS_STANDBY;
-        waktuSiklusStandby = sekarang;
-        break;
-      }
-
-      if (tombol != NO_KEY) {
-        waktuAktivitasDebugTerakhir = sekarang;
-        bufferInputDebug = "";
-        pesanFeedbackDebug = "";
-
-        if (tombol == '1') statusSaatIni = STATUS_DEBUG_WAKTU;
-        else if (tombol == '2') statusSaatIni = STATUS_DEBUG_TANGGAL;
-        else if (tombol == '3') {
-          statusSaatIni = STATUS_DEBUG_SLOT;
-          fokusMaksimal = false;
-          bufferInputTersedia = "";
-          bufferInputMaksimal = "";
-        }
-        else if (tombol == 'C') {
-          statusSaatIni = STATUS_STANDBY;
-          waktuSiklusStandby = sekarang;
-        }
-      }
-      break;
-    }
-
-    // ─────────────────────────────────────────────────────────
-    // STATUS_DEBUG_WAKTU: Sub-menu Edit Waktu (HHMM)
-    // ─────────────────────────────────────────────────────────
-    case STATUS_DEBUG_WAKTU: {
-      if (sekarang - waktuAktivitasDebugTerakhir >= TIMEOUT_DEBUG_MS) {
-        statusSaatIni = STATUS_STANDBY;
-        break;
-      }
-
-      if (pesanFeedbackDebug.length() > 0 && sekarang - waktuFeedbackDebug >= 2000) {
-        pesanFeedbackDebug = "";
-        statusSaatIni = STATUS_DEBUG_MENU;
-        break;
-      }
-
-      if (tombol != NO_KEY && pesanFeedbackDebug.length() == 0) {
-        waktuAktivitasDebugTerakhir = sekarang;
-        if (tombol >= '0' && tombol <= '9') {
-          if (bufferInputDebug.length() < 4) bufferInputDebug += tombol;
-        } else if (tombol == '*') {
-          if (bufferInputDebug.length() > 0) bufferInputDebug.remove(bufferInputDebug.length() - 1);
-        } else if (tombol == 'C') {
-          statusSaatIni = STATUS_DEBUG_MENU;
-        } else if (tombol == '#') {
-          if (TimeManager::setWaktuDariString(bufferInputDebug)) {
-            pesanFeedbackDebug = "Waktu Disimpan!";
-          } else {
-            pesanFeedbackDebug = "Waktu Invalid!";
-            bufferInputDebug = "";
-          }
-          waktuFeedbackDebug = sekarang;
-        }
-      }
-      break;
-    }
-
-    // ─────────────────────────────────────────────────────────
-    // STATUS_DEBUG_TANGGAL: Sub-menu Edit Tanggal (DDMMYYYY)
-    // ─────────────────────────────────────────────────────────
-    case STATUS_DEBUG_TANGGAL: {
-      if (sekarang - waktuAktivitasDebugTerakhir >= TIMEOUT_DEBUG_MS) {
-        statusSaatIni = STATUS_STANDBY;
-        break;
-      }
-
-      if (pesanFeedbackDebug.length() > 0 && sekarang - waktuFeedbackDebug >= 2000) {
-        pesanFeedbackDebug = "";
-        statusSaatIni = STATUS_DEBUG_MENU;
-        break;
-      }
-
-      if (tombol != NO_KEY && pesanFeedbackDebug.length() == 0) {
-        waktuAktivitasDebugTerakhir = sekarang;
-        if (tombol >= '0' && tombol <= '9') {
-          if (bufferInputDebug.length() < 8) bufferInputDebug += tombol;
-        } else if (tombol == '*') {
-          if (bufferInputDebug.length() > 0) bufferInputDebug.remove(bufferInputDebug.length() - 1);
-        } else if (tombol == 'C') {
-          statusSaatIni = STATUS_DEBUG_MENU;
-        } else if (tombol == '#') {
-          if (TimeManager::setTanggalDariString(bufferInputDebug)) {
-            pesanFeedbackDebug = "Tanggal Disimpan!";
-          } else {
-            pesanFeedbackDebug = "Tanggal Invalid!";
-            bufferInputDebug = "";
-          }
-          waktuFeedbackDebug = sekarang;
-        }
-      }
-      break;
-    }
-
-    // ─────────────────────────────────────────────────────────
-    // STATUS_DEBUG_SLOT: Sub-menu Edit Slot Parkir Terpadu
-    // ─────────────────────────────────────────────────────────
-    case STATUS_DEBUG_SLOT: {
-      if (sekarang - waktuAktivitasDebugTerakhir >= TIMEOUT_DEBUG_MS) {
-        statusSaatIni = STATUS_STANDBY;
-        break;
-      }
-
-      if (pesanFeedbackDebug.length() > 0 && sekarang - waktuFeedbackDebug >= 2000) {
-        pesanFeedbackDebug = "";
-        statusSaatIni = STATUS_DEBUG_MENU;
-        break;
-      }
-
-      if (tombol != NO_KEY && pesanFeedbackDebug.length() == 0) {
-        waktuAktivitasDebugTerakhir = sekarang;
-
-        if (tombol == 'A') {
-          // Beralih field aktif antara Tersedia dan Maksimal
-          fokusMaksimal = !fokusMaksimal;
-        } else if (tombol >= '0' && tombol <= '9') {
-          if (fokusMaksimal) {
-            if (bufferInputMaksimal.length() < 2) bufferInputMaksimal += tombol;
-          } else {
-            if (bufferInputTersedia.length() < 2) bufferInputTersedia += tombol;
-          }
-        } else if (tombol == '*') {
-          if (fokusMaksimal) {
-            if (bufferInputMaksimal.length() > 0) bufferInputMaksimal.remove(bufferInputMaksimal.length() - 1);
-          } else {
-            if (bufferInputTersedia.length() > 0) bufferInputTersedia.remove(bufferInputTersedia.length() - 1);
-          }
-        } else if (tombol == 'C') {
-          statusSaatIni = STATUS_DEBUG_MENU;
-        } else if (tombol == '#') {
-          int newMax = (bufferInputMaksimal.length() > 0) ? bufferInputMaksimal.toInt() : kapasitasMaksimal;
-          int newSlot = (bufferInputTersedia.length() > 0) ? bufferInputTersedia.toInt() : slotTersedia;
-
-          if (newMax >= 1 && newMax <= 99 && newSlot >= 0 && newSlot <= newMax) {
-            kapasitasMaksimal = newMax;
-            slotTersedia = newSlot;
-            storage.simpanKapasitasMaksimal(kapasitasMaksimal);
-            storage.simpanSlot(slotTersedia);
-            pesanFeedbackDebug = "Slot Disimpan!";
-          } else {
-            pesanFeedbackDebug = "Nilai Invalid!";
-            bufferInputTersedia = "";
-            bufferInputMaksimal = "";
-          }
-          waktuFeedbackDebug = sekarang;
-        }
-      }
-      break;
-    }
+  // 3. Delegasi FSM ke Kontroler Sesuai Domain
+  if (statusSaatIni <= STATUS_LANE_KELUAR) {
+    parking.handleLoop(statusSaatIni, tombol, sekarang);
+  } else {
+    debugCtrl.handleLoop(statusSaatIni, tombol, sekarang);
   }
 
-  // 4. Hitung sisa waktu untuk visualisasi
-  unsigned long sisaCountdown5s = 0;
-  if (statusSaatIni == STATUS_COUNTDOWN_5S) {
-    unsigned long durasi = sekarang - waktuMulaiCountdown5s;
-    sisaCountdown5s = (durasi < TIMEOUT_COUNTDOWN_5S) ? (TIMEOUT_COUNTDOWN_5S - durasi) : 0;
-  }
-
-  unsigned long sisaTutupAmanMs = 0;
-  if (statusSaatIni == STATUS_GATE_TERBUKA && mobilPernahTerdeteksiDiGate && !mobilSedangDiBawahGate) {
-    unsigned long durasi = sekarang - waktuMobilSelesaiLewat;
-    sisaTutupAmanMs = (durasi < TIMEOUT_TUTUP_AMAN_5S) ? (TIMEOUT_TUTUP_AMAN_5S - durasi) : 0;
-  }
-
-  unsigned long sisaTimeoutGateMs = 0;
-  if (statusSaatIni == STATUS_GATE_TERBUKA) {
-    unsigned long durasi = sekarang - waktuMulaiGateBuka;
-    sisaTimeoutGateMs = (durasi < TIMEOUT_GATE_OPEN_MAX) ? (TIMEOUT_GATE_OPEN_MAX - durasi) : 0;
-  }
-
+  // 4. Siapkan Data Bundle UIState
   char bufWaktu[16], bufTanggal[16], bufHari[16];
   TimeManager::dapatkanWaktuFormat(bufWaktu, bufTanggal, bufHari);
 
-  // 5. Render antarmuka visual OLED
-  displayMgr.render(
-    statusSaatIni,
-    slotTersedia,
-    kapasitasMaksimal,
-    layarStandbyModeA,
-    ultrasonic.getJarakKiri(),
-    sisaCountdown5s,
-    mobilSedangDiBawahGate,
-    mobilPernahTerdeteksiDiGate,
-    sisaTutupAmanMs,
-    sisaTimeoutGateMs,
-    bufWaktu,
-    bufTanggal,
-    bufHari,
-    bufferInputDebug,
-    pesanFeedbackDebug,
-    fokusMaksimal,
-    bufferInputTersedia,
-    bufferInputMaksimal
-  );
+  UIState state;
+  state.status = statusSaatIni;
+  state.slotTersedia = parking.getSlotTersedia();
+  state.kapasitasMaksimal = parking.getKapasitasMaksimal();
+  state.layarStandbyModeA = parking.isLayarStandbyModeA();
+  state.jarakKiri = ultrasonic.getJarakKiri();
+  state.jarakKanan = ultrasonic.getJarakKanan();
+
+  state.sisaCountdown5s = parking.getSisaCountdown5s();
+  state.mobilSedangDiBawahGate = parking.isMobilSedangDiBawahGate();
+  state.mobilPernahTerdeteksiDiGate = parking.isMobilPernahTerdeteksiDiGate();
+  state.sisaTutupAmanMs = parking.getSisaTutupAmanMs();
+  state.sisaTimeoutGateMs = parking.getSisaTimeoutGateMs();
+
+  state.bufWaktu = bufWaktu;
+  state.bufTanggal = bufTanggal;
+  state.bufHari = bufHari;
+
+  // Isi data debug ke bundle UIState
+  debugCtrl.populateUIState(state);
+
+  // Tandai dirty jika ada penekanan tombol
+  if (tombol != '\0' && tombol != NO_KEY) {
+    displayMgr.markDirty();
+  }
+
+  // 5. Render Layar OLED dengan Frame Throttling
+  displayMgr.render(state, wifi);
 }

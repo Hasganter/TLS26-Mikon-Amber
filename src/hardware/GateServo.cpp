@@ -1,4 +1,4 @@
-#include "include/GateServo.h"
+#include "GateServo.h"
 
 GateServo::GateServo() : posisiSudut(SERVO_TUTUP) {}
 

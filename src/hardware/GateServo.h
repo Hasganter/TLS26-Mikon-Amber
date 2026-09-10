@@ -1,7 +1,9 @@
-#pragma once
+#ifndef GATE_SERVO_H
+#define GATE_SERVO_H
+
 #include <Arduino.h>
 #include <ESP32Servo.h>
-#include "Config.h"
+#include "../config/Config.h"
 
 class GateServo {
 public:
@@ -23,3 +25,5 @@ private:
   Servo servo;
   int posisiSudut;
 };
+
+#endif // GATE_SERVO_H

@@ -1,4 +1,4 @@
-#include "include/TimeManager.h"
+#include "TimeManager.h"
 
 const char* TimeManager::NAMA_HARI[] = {
   "Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"
@@ -37,18 +37,28 @@ void TimeManager::dapatkanWaktuFormat(char* bufWaktu, char* bufTanggal, char* bu
 }
 
 bool TimeManager::setWaktuDariString(const String &str) {
-  if (str.length() != 4) return false;
-  int jam = str.substring(0, 2).toInt();
-  int mnt = str.substring(2, 4).toInt();
+  int jam = 0, mnt = 0, dtk = 0;
 
-  if (jam < 0 || jam > 23 || mnt < 0 || mnt > 59) return false;
+  if (str.length() == 6) {
+    jam = str.substring(0, 2).toInt();
+    mnt = str.substring(2, 4).toInt();
+    dtk = str.substring(4, 6).toInt();
+    if (jam < 0 || jam > 23 || mnt < 0 || mnt > 59 || dtk < 0 || dtk > 59) return false;
+  } else if (str.length() == 4) {
+    jam = str.substring(0, 2).toInt();
+    mnt = str.substring(2, 4).toInt();
+    dtk = 0;
+    if (jam < 0 || jam > 23 || mnt < 0 || mnt > 59) return false;
+  } else {
+    return false;
+  }
 
   time_t now;
   time(&now);
   struct tm *ti = localtime(&now);
   ti->tm_hour = jam;
   ti->tm_min  = mnt;
-  ti->tm_sec  = 0;
+  ti->tm_sec  = dtk;
 
   struct timeval tv;
   tv.tv_sec = mktime(ti);

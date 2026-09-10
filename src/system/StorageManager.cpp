@@ -1,4 +1,4 @@
-#include "include/StorageManager.h"
+#include "StorageManager.h"
 
 StorageManager::StorageManager() {}
 
@@ -27,4 +27,20 @@ void StorageManager::simpanSlot(int nilaiSlot) {
 
 void StorageManager::simpanKapasitasMaksimal(int nilaiMax) {
   prefs.putInt("max_slots", nilaiMax);
+}
+
+void StorageManager::simpanWiFi(const String &ssid, const String &password) {
+  prefs.putString("wifi_ssid", ssid);
+  prefs.putString("wifi_pass", password);
+}
+
+bool StorageManager::muatWiFi(String &outSsid, String &outPassword) {
+  outSsid = prefs.getString("wifi_ssid", "");
+  outPassword = prefs.getString("wifi_pass", "");
+  return (outSsid.length() > 0);
+}
+
+void StorageManager::hapusWiFi() {
+  prefs.remove("wifi_ssid");
+  prefs.remove("wifi_pass");
 }
