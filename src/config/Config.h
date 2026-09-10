@@ -4,10 +4,7 @@
 #include <Arduino.h>
 #include "SystemTypes.h"
 
-// ═════════════════════════════════════════════════════════════
-// KONFIGURASI PIN & PERANGKAT KERAS (ESP32 DevKit C V4)
-// ═════════════════════════════════════════════════════════════
-
+// KONFIGURASI PIN & HARDWARE
 // ── Layar OLED 128x64 SSD1306 (I2C) ──────────────────────────
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -36,10 +33,7 @@ const byte KEYPAD_KOLOM = 4;
 const byte PIN_KEYPAD_BARIS[KEYPAD_BARIS] = { 13, 12, 14, 27 };  // R1, R2, R3, R4
 const byte PIN_KEYPAD_KOLOM[KEYPAD_KOLOM] = { 26, 25, 33, 32 };  // C1, C2, C3, C4
 
-// ═════════════════════════════════════════════════════════════
 // PARAMETER SISTEM & TIMING
-// ═════════════════════════════════════════════════════════════
-
 const int DEFAULT_KAPASITAS_MAKSIMAL = 5;
 const int BATAS_MAX_SLOT = 999;
 const float AMBANG_DETEKSI_CM = 40.0f;  // Batas jarak deteksi kendaraan (cm)
@@ -53,5 +47,11 @@ const unsigned long TIMEOUT_DEBUG_MS       = 30000; // 30 detik timeout otomatis
 const unsigned long INTERVAL_SENSOR_MS     = 60;    // Interval polling sensor non-blocking
 const unsigned long MULTI_TAP_TIMEOUT_MS   = 800;   // 800 ms jeda commit karakter T9
 const unsigned long WIFI_CONNECT_TIMEOUT_MS= 10000; // 10 detik batas waktu koneksi WiFi
+
+// KONFIGURASI WEB SERVER & WEBSOCKET
+const uint16_t HTTP_PORT = 80;
+const uint16_t WS_PORT   = 81;
+const char AP_FALLBACK_SSID[] = "TLS26-Parkir";
+const char AP_FALLBACK_PASS[] = "adminparkir";
 
 #endif // CONFIG_H

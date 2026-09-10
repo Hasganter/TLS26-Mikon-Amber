@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0d1117">
+  <title>TLS26 Parking Console | ESP32</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%2310b981'/%3E%3Cpath d='M30 25h25a20 20 0 0 1 0 40H45v20H30V25zm15 12v16h10a8 8 0 0 0 0-16H45z' fill='%230d1117'/%3E%3C/svg%3E">
+  <style>
+    :root {
+      --bg: #090d13;
+      --card-bg: #121824;
+      --card-border: #1f293d;
+      --text: #e2e8f0;
+      --text-muted: #8492a6;
+      --emerald: #10b981;
+      --emerald-glow: rgba(16, 185, 129, 0.2);
+      --amber: #f59e0b;
+      --amber-glow: rgba(245, 158, 11, 0.2);
+      --rose: #f43f5e;
+      --rose-glow: rgba(244, 63, 94, 0.2);
+      --cyan: #06b6d4;
+      --cyan-glow: rgba(6, 182, 212, 0.2);
+      --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, Menlo, monospace;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+    header {
+      background-color: rgba(18, 24, 36, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--card-border);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-icon {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--emerald), var(--cyan));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-weight: 800; font-size: 18px; color: var(--bg);
+    }
+    .brand-title { font-weight: 700; font-size: 16px; letter-spacing: 0.5px; }
+    .brand-sub { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); }
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+    .status-badge {
+      display: flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 20px;
+      font-size: 12px; font-family: var(--font-mono);
+      background: rgba(255,255,255,0.05); border: 1px solid var(--card-border);
+    }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--rose); }
+    .dot.live { background: var(--emerald); box-shadow: 0 0 8px var(--emerald); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .btn {
+      padding: 8px 16px; border-radius: 6px; border: 1px solid transparent;
+      font-size: 12px; font-weight: 600; cursor: pointer;
+      display: inline-flex; align-items: center; gap: 6px;
+      transition: all 0.15s ease; font-family: var(--font-sans);
+    }
+    .btn-primary { background: var(--emerald); color: #022013; }
+    .btn-primary:hover { background: #059669; }
+    .btn-secondary { background: #1e293b; color: var(--text); border-color: var(--card-border); }
+    .btn-secondary:hover { background: #334155; }
+    .btn-danger { background: rgba(244,63,94,0.15); color: var(--rose); border-color: rgba(244,63,94,0.3); }
+    .btn-danger:hover { background: rgba(244,63,94,0.25); }
+    .container { max-width: 1280px; width: 100%; margin: 0 auto; padding: 24px 20px; flex: 1; }
+    .grid-top { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; margin-bottom: 20px; }
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 10px;
+      padding: 18px;
+      position: relative;
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .card-title {
+      font-size: 11px; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--text-muted);
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 12px;
+    }
+    .metric-hero { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+    .metric-val { font-family: var(--font-mono); font-size: 42px; font-weight: 700; color: var(--emerald); line-height: 1; }
+    .metric-max { font-family: var(--font-mono); font-size: 20px; color: var(--text-muted); }
+    .progress-bar-bg { width: 100%; height: 8px; background: #1e293b; border-radius: 4px; overflow: hidden; margin-top: 10px; }
+    .progress-bar-fill { height: 100%; width: 0%; background: var(--emerald); transition: width 0.3s ease; }
+    .metric-subtext { font-size: 12px; color: var(--text-muted); margin-top: 8px; font-family: var(--font-mono); }
+    /* Gate graphic */
+    .gate-container {
+      display: flex; align-items: center; justify-content: space-between; padding: 12px 0;
+    }
+    .gate-svg { width: 110px; height: 75px; }
+    .gate-arm { transform-origin: 30px 58px; transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+    .gate-arm.open { transform: rotate(-75deg); }
+    .gate-status-pill {
+      font-family: var(--font-mono); font-weight: 700; font-size: 14px;
+      padding: 6px 14px; border-radius: 6px; text-align: center;
+      background: rgba(16,185,129,0.1); color: var(--emerald); border: 1px solid rgba(16,185,129,0.3);
+    }
+    .gate-status-pill.open { background: rgba(6,182,212,0.15); color: var(--cyan); border-color: rgba(6,182,212,0.4); }
+    .gate-status-pill.hold { background: rgba(245,158,11,0.15); color: var(--amber); border-color: rgba(245,158,11,0.4); }
+    .gate-status-pill.locked { background: rgba(244,63,94,0.15); color: var(--rose); border-color: rgba(244,63,94,0.4); }
+    /* Dual ultrasonic lane */
+    .lane-box { display: flex; flex-direction: column; gap: 10px; }
+    .lane-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 10px 12px; background: rgba(0,0,0,0.25); border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.05); font-family: var(--font-mono); font-size: 13px;
+    }
+    .lane-tag { font-size: 11px; padding: 2px 6px; border-radius: 4px; font-weight: 600; }
+    .tag-detect { background: rgba(245,158,11,0.2); color: var(--amber); border: 1px solid rgba(245,158,11,0.4); }
+    .tag-clear { background: rgba(16,185,129,0.15); color: var(--emerald); border: 1px solid rgba(16,185,129,0.3); }
+    /* Control toolbar */
+    .controls-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 20px; }
+    @media (max-width: 860px) { .controls-grid { grid-template-columns: 1fr; } }
+    .action-panel { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-top: 10px; }
+    .input-group { display: flex; gap: 8px; margin-top: 8px; }
+    input[type="number"], input[type="text"], input[type="password"] {
+      background: #090d13; border: 1px solid var(--card-border);
+      color: var(--text); padding: 8px 12px; border-radius: 6px;
+      font-family: var(--font-mono); font-size: 13px; width: 100%; outline: none;
+    }
+    input:focus { border-color: var(--emerald); }
+    /* Terminal logs */
+    .log-box {
+      background: #05080c; border: 1px solid var(--card-border);
+      border-radius: 8px; padding: 12px; height: 180px;
+      overflow-y: auto; font-family: var(--font-mono); font-size: 12px;
+      display: flex; flex-direction: column-reverse; gap: 4px;
+    }
+    .log-line { display: flex; gap: 8px; line-height: 1.4; }
+    .log-time { color: var(--text-muted); }
+    .log-cat { font-weight: 700; min-width: 65px; }
+    .cat-GATE { color: var(--cyan); }
+    .cat-ENTRY { color: var(--emerald); }
+    .cat-EXIT { color: var(--amber); }
+    .cat-CONFIG { color: #a78bfa; }
+    .cat-SYSTEM { color: #94a3b8; }
+    footer {
+      padding: 16px 24px; border-top: 1px solid var(--card-border);
+      font-size: 11px; color: var(--text-muted); font-family: var(--font-mono);
+      display: flex; justify-content: space-between; align-items: center;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-icon">P</div>
+      <div>
+        <div class="brand-title">TLS26 PARKING OPERATIONS</div>
+        <div class="brand-sub">DUAL-LANE TELEMETRY CONSOLE</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div class="status-badge" id="wsStatusBadge">
+        <span class="dot" id="wsDot"></span>
+        <span id="wsStatusText">CONNECTING...</span>
+      </div>
+      <button class="btn btn-secondary" id="btnSyncTime" title="Sinkronkan jam ESP32 dengan browser">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Sync RTC
+      </button>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Top 3 Metrics Cards -->
+    <div class="grid-top">
+
+      <!-- Card 1: Slot Parkir -->
+      <div class="card">
+        <div class="card-title">
+          <span>Ketersediaan Slot Parkir</span>
+          <span id="badgeOccupancy" style="font-family:var(--font-mono); color:var(--emerald);">0% TERISI</span>
+        </div>
+        <div class="metric-hero">
+          <span class="metric-val" id="valSlots">--</span>
+          <span class="metric-max" id="valMaxSlots">/ --</span>
+        </div>
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="barSlots"></div>
+        </div>
+        <div class="metric-subtext" id="txtOccupied">Terisi: - kendaraan | Kuota Maks: -</div>
+      </div>
+
+      <!-- Card 2: Status Portal (Servo) -->
+      <div class="card">
+        <div class="card-title">
+          <span>Status Portal Masuk</span>
+          <span id="badgeGateAngle" style="font-family:var(--font-mono);">0°</span>
+        </div>
+        <div class="gate-container">
+          <svg class="gate-svg" viewBox="0 0 120 80">
+            <!-- Base Pillar -->
+            <rect x="20" y="45" width="20" height="30" rx="3" fill="#1e293b" stroke="#334155" stroke-width="2"/>
+            <circle cx="30" cy="58" r="6" fill="#64748b"/>
+            <!-- Gate Arm -->
+            <g id="svgGateArm" class="gate-arm">
+              <rect x="28" y="55" width="85" height="6" rx="3" fill="#f59e0b"/>
+              <line x1="45" y1="55" x2="52" y2="61" stroke="#dc2626" stroke-width="2"/>
+              <line x1="65" y1="55" x2="72" y2="61" stroke="#dc2626" stroke-width="2"/>
+              <line x1="85" y1="55" x2="92" y2="61" stroke="#dc2626" stroke-width="2"/>
+              <line x1="105" y1="55" x2="112" y2="61" stroke="#dc2626" stroke-width="2"/>
+            </g>
+          </svg>
+          <div class="gate-status-pill" id="pillGateStatus">TERTUTUP</div>
+        </div>
+        <div class="action-panel">
+          <button class="btn btn-primary" id="btnOpenGate">Buka Portal (90°)</button>
+          <button class="btn btn-secondary" id="btnCloseGate">Tutup (0°)</button>
+          <button class="btn btn-danger" id="btnLockGate">Kunci Darurat</button>
+        </div>
+      </div>
+
+      <!-- Card 3: Dual Ultrasonic Sensors -->
+      <div class="card">
+        <div class="card-title">
+          <span>Sensor Ultrasonik Dual-Lane</span>
+          <span style="font-family:var(--font-mono); color:var(--text-muted);">AMBANG: 40 CM</span>
+        </div>
+        <div class="lane-box">
+          <div class="lane-item">
+            <div>
+              <div style="font-weight:600;">Lane Masuk (Kiri)</div>
+              <div style="font-size:11px; color:var(--text-muted);">GPIO 5 / 18</div>
+            </div>
+            <div style="text-align:right;">
+              <div id="valDistLeft" style="font-size:16px; font-weight:700;">-- cm</div>
+              <span class="lane-tag tag-clear" id="tagLeft">KOSONG</span>
+            </div>
+          </div>
+          <div class="lane-item">
+            <div>
+              <div style="font-weight:600;">Lane Keluar (Kanan)</div>
+              <div style="font-size:11px; color:var(--text-muted);">GPIO 19 / 23</div>
+            </div>
+            <div style="text-align:right;">
+              <div id="valDistRight" style="font-size:16px; font-weight:700;">-- cm</div>
+              <span class="lane-tag tag-clear" id="tagRight">KOSONG</span>
+            </div>
+          </div>
+        </div>
+        <div class="metric-subtext" id="txtSystemClock">Jam RTC: --:--:-- | Status FSM: --</div>
+      </div>
+
+    </div>
+
+    <!-- Controls & Logs Section -->
+    <div class="controls-grid">
+
+      <!-- Left: Live Activity Log -->
+      <div class="card">
+        <div class="card-title">
+          <span>Live Console Stream</span>
+          <button class="btn btn-secondary" id="btnClearLog" style="padding:2px 8px; font-size:10px;">Clear</button>
+        </div>
+        <div class="log-box" id="logBox">
+          <div class="log-line">
+            <span class="log-time">[SYSTEM]</span>
+            <span class="log-cat cat-SYSTEM">[INIT]</span>
+            <span>Menunggu koneksi WebSocket telemetri...</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: System Configuration -->
+      <div class="card">
+        <div class="card-title">
+          <span>Konfigurasi Kuota Slot</span>
+        </div>
+        <form id="formSlots" onsubmit="event.preventDefault(); submitSlots();">
+          <div style="display:flex; gap:10px;">
+            <div style="flex:1;">
+              <label style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">Slot Tersedia</label>
+              <input type="number" id="inputAvailable" min="0" max="999" required>
+            </div>
+            <div style="flex:1;">
+              <label style="font-size:11px; color:var(--text-muted); font-family:var(--font-mono);">Maksimal</label>
+              <input type="number" id="inputMax" min="1" max="999" required>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary" style="width:100%; margin-top:12px; justify-content:center;">
+            Simpan Kuota ke Flash NVS
+          </button>
+        </form>
+
+        <div style="margin-top:16px; border-top:1px solid var(--card-border); padding-top:12px;">
+          <div class="card-title" style="margin-bottom:8px;">
+            <span>Info Jaringan ESP32</span>
+          </div>
+          <div style="font-family:var(--font-mono); font-size:11px; color:var(--text-muted); line-height:1.6;">
+            <div>IP Jaringan : <span id="txtIP" style="color:var(--text);">--</span></div>
+            <div>Hotspot AP  : <span style="color:var(--text);">TLS26-Parkir (192.168.4.1)</span></div>
+            <div>RSSI Sinyal : <span id="txtRSSI" style="color:var(--emerald);">-- dBm</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    <div>TLS26 MIKON AMBER &copy; 2026 | ESP32 DevKit C V4</div>
+    <div id="txtUptime">Uptime: 0s</div>
+  </footer>
+
+  <script>
+    // PWA Service Worker Registration
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').then(() => {
+        console.log('[PWA] ServiceWorker registered.');
+      }).catch(err => console.warn('[PWA] SW registration failed:', err));
+    }
+
+    let ws = null;
+    let wsConnected = false;
+    let reconnectTimer = null;
+
+    function initWebSocket() {
+      const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const host = location.hostname || '192.168.4.1';
+      const wsUrl = `${protocol}//${host}:81/`;
+
+      addLog('SYSTEM', `Menghubungkan ke WebSocket: ${wsUrl}`);
+      updateWsBadge('CONNECTING...', 'var(--amber)', false);
+
+      try {
+        ws = new WebSocket(wsUrl);
+      } catch (err) {
+        scheduleReconnect();
+        return;
+      }
+
+      ws.onopen = () => {
+        wsConnected = true;
+        updateWsBadge('LIVE WS (81)', 'var(--emerald)', true);
+        addLog('SYSTEM', 'WebSocket terhubung secara real-time.');
+      };
+
+      ws.onclose = () => {
+        wsConnected = false;
+        updateWsBadge('DISCONNECTED', 'var(--rose)', false);
+        addLog('SYSTEM', 'Koneksi WebSocket terputus. Mencoba reconnect...');
+        scheduleReconnect();
+      };
+
+      ws.onerror = (err) => {
+        ws.close();
+      };
+
+      ws.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          handlePayload(data);
+        } catch (err) {
+          console.error('[WS Parse Error]', err);
+        }
+      };
+    }
+
+    function scheduleReconnect() {
+      if (reconnectTimer) clearTimeout(reconnectTimer);
+      reconnectTimer = setTimeout(initWebSocket, 3000);
+    }
+
+    function updateWsBadge(text, color, isLive) {
+      document.getElementById('wsStatusText').innerText = text;
+      const dot = document.getElementById('wsDot');
+      dot.className = isLive ? 'dot live' : 'dot';
+      dot.style.background = color;
+    }
+
+    function sendCommand(cmdObj) {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(cmdObj));
+        return true;
+      } else {
+        alert('Koneksi WebSocket ke ESP32 belum terhubung!');
+        return false;
+      }
+    }
+
+    function handlePayload(data) {
+      if (data.type === 'telemetry') {
+        updateTelemetry(data);
+      } else if (data.type === 'log') {
+        addLog(data.category || 'EVENT', data.message);
+      }
+    }
+
+    function updateTelemetry(t) {
+      // 1. Slots
+      document.getElementById('valSlots').innerText = String(t.slots).padStart(3, '0');
+      document.getElementById('valMaxSlots').innerText = '/ ' + String(t.maxSlots).padStart(3, '0');
+      const occupied = Math.max(0, t.maxSlots - t.slots);
+      const pct = Math.round((occupied / t.maxSlots) * 100);
+      document.getElementById('barSlots').style.width = pct + '%';
+      document.getElementById('badgeOccupancy').innerText = pct + '% TERISI';
+      document.getElementById('txtOccupied').innerText = `Terisi: ${occupied} kendaraan | Kuota Maks: ${t.maxSlots}`;
+
+      // Set input placeholders if not focused
+      if (document.activeElement !== document.getElementById('inputAvailable')) {
+        document.getElementById('inputAvailable').value = t.slots;
+      }
+      if (document.activeElement !== document.getElementById('inputMax')) {
+        document.getElementById('inputMax').value = t.maxSlots;
+      }
+
+      // 2. Gate
+      const gatePill = document.getElementById('pillGateStatus');
+      const arm = document.getElementById('svgGateArm');
+      document.getElementById('badgeGateAngle').innerText = (t.gateAngle || 0) + '°';
+
+      if (t.gate === 'OPEN') {
+        gatePill.className = 'gate-status-pill open';
+        gatePill.innerText = 'TERBUKA (90°)';
+        arm.classList.add('open');
+      } else if (t.gate === 'HOLD') {
+        gatePill.className = 'gate-status-pill hold';
+        gatePill.innerText = 'SAFETY HOLD';
+        arm.classList.add('open');
+      } else if (t.gate === 'LOCKED') {
+        gatePill.className = 'gate-status-pill locked';
+        gatePill.innerText = 'TERKUNCI';
+        arm.classList.remove('open');
+      } else {
+        gatePill.className = 'gate-status-pill';
+        gatePill.innerText = 'TERTUTUP (0°)';
+        arm.classList.remove('open');
+      }
+
+      // 3. Ultrasonic
+      document.getElementById('valDistLeft').innerText = (t.distLeft ? t.distLeft.toFixed(1) : '--') + ' cm';
+      const tagLeft = document.getElementById('tagLeft');
+      tagLeft.className = t.carLeft ? 'lane-tag tag-detect' : 'lane-tag tag-clear';
+      tagLeft.innerText = t.carLeft ? 'TERDETEKSI' : 'KOSONG';
+
+      document.getElementById('valDistRight').innerText = (t.distRight ? t.distRight.toFixed(1) : '--') + ' cm';
+      const tagRight = document.getElementById('tagRight');
+      tagRight.className = t.carRight ? 'lane-tag tag-detect' : 'lane-tag tag-clear';
+      tagRight.innerText = t.carRight ? 'TERDETEKSI' : 'KOSONG';
+
+      // 4. System & Network
+      document.getElementById('txtSystemClock').innerText = `Jam RTC: ${t.time || '--:--:--'} (${t.day || ''}) | FSM: ${t.systemStatus || 'STANDBY'}`;
+      document.getElementById('txtIP').innerText = t.ip || '192.168.4.1';
+      document.getElementById('txtRSSI').innerText = (t.rssi || -100) + ' dBm';
+
+      const s = t.uptime || 0;
+      const h = Math.floor(s / 3600);
+      const m = Math.floor((s % 3600) / 60);
+      document.getElementById('txtUptime').innerText = `Uptime: ${h}j ${m}m ${s % 60}d`;
+    }
+
+    function addLog(cat, msg) {
+      const box = document.getElementById('logBox');
+      const line = document.createElement('div');
+      line.className = 'log-line';
+      const now = new Date().toTimeString().split(' ')[0];
+      line.innerHTML = `
+        <span class="log-time">[${now}]</span>
+        <span class="log-cat cat-${cat}">[${cat}]</span>
+        <span>${msg}</span>
+      `;
+      box.prepend(line);
+      // Keep only last 50 entries
+      while (box.children.length > 50) {
+        box.removeChild(box.lastChild);
+      }
+    }
+
+    // Button Actions
+    document.getElementById('btnOpenGate').onclick = () => {
+      if (sendCommand({ action: 'gate', command: 'OPEN' })) {
+        addLog('GATE', 'Perintah Buka Portal dikirim dari Web.');
+      }
+    };
+
+    document.getElementById('btnCloseGate').onclick = () => {
+      if (sendCommand({ action: 'gate', command: 'CLOSE' })) {
+        addLog('GATE', 'Perintah Tutup Portal dikirim dari Web.');
+      }
+    };
+
+    document.getElementById('btnLockGate').onclick = () => {
+      if (sendCommand({ action: 'gate', command: 'LOCK' })) {
+        addLog('GATE', 'Toggle Kunci Darurat Portal dikirim.');
+      }
+    };
+
+    document.getElementById('btnClearLog').onclick = () => {
+      document.getElementById('logBox').innerHTML = '';
+    };
+
+    document.getElementById('btnSyncTime').onclick = () => {
+      const now = new Date();
+      const payload = {
+        action: 'sync_time',
+        hour: now.getHours(),
+        minute: now.getMinutes(),
+        second: now.getSeconds(),
+        day: now.getDate(),
+        month: now.getMonth() + 1,
+        year: now.getFullYear()
+      };
+      if (sendCommand(payload)) {
+        addLog('CONFIG', `Sinkronisasi waktu: ${payload.hour}:${payload.minute}:${payload.second} ${payload.day}/${payload.month}/${payload.year}`);
+      }
+    };
+
+    function submitSlots() {
+      const avail = parseInt(document.getElementById('inputAvailable').value, 10);
+      const max = parseInt(document.getElementById('inputMax').value, 10);
+
+      if (isNaN(avail) || isNaN(max) || max < 1 || max > 999 || avail < 0 || avail > max) {
+        alert('Nilai kuota tidak valid! Pastikan 1 <= Max <= 999 dan 0 <= Tersedia <= Max.');
+        return;
+      }
+
+      if (sendCommand({ action: 'set_slots', available: avail, max: max })) {
+        addLog('CONFIG', `Perubahan kuota dikirim: Tersedia ${avail} / Maksimal ${max}`);
+      }
+    }
+
+    // Inisialisasi awal saat load
+    window.addEventListener('load', initWebSocket);
+  </script>
+</body>
+</html>

@@ -7,7 +7,7 @@
  *   - src/hardware/   : GateServo, UltrasonicManager, KeypadManager
  *   - src/system/     : StorageManager (NVS), TimeManager (Software RTC)
  *   - src/input/      : KeypadInputHelper (Multi-Tap T9 Text Engine)
- *   - src/network/    : WiFiManager (Async Scan & Connect)
+ *   - src/network/    : WiFiManager (Dual AP+STA), WebDashboardManager (PWA & WebSocket)
  *   - src/ui/         : DisplayManager, UIHelper, UIViewParking, UIViewDebug
  *   - src/controller/ : ParkingController, DebugController
  */
@@ -20,14 +20,12 @@
 #include "src/system/StorageManager.h"
 #include "src/system/TimeManager.h"
 #include "src/network/WiFiManager.h"
+#include "src/network/WebDashboardManager.h"
 #include "src/ui/DisplayManager.h"
 #include "src/controller/ParkingController.h"
 #include "src/controller/DebugController.h"
 
-// ═════════════════════════════════════════════════════════════
 // INSTANSIASI MODUL & KONTROLER
-// ═════════════════════════════════════════════════════════════
-
 GateServo gate;
 UltrasonicManager ultrasonic;
 KeypadManager keypadMgr;
@@ -37,16 +35,14 @@ DisplayManager displayMgr;
 
 ParkingController parking(gate, ultrasonic, storage);
 DebugController debugCtrl(parking, storage, wifi);
+WebDashboardManager webDashboard(parking, storage, wifi);
 
 StatusSistem statusSaatIni = STATUS_STANDBY;
 
-// ═════════════════════════════════════════════════════════════
 // SETUP SISTEM
-// ═════════════════════════════════════════════════════════════
-
 void setup() {
   Serial.begin(115200);
-  Serial.println("\n[SISTEM PARKIR] Memulai inisialisasi modul modular...");
+  Serial.println("\r\n[SISTEM PARKIR] Memulai inisialisasi modul modular...");
 
   // Inisialisasi Layar OLED SSD1306
   if (!displayMgr.inisialisasi()) {
@@ -61,17 +57,17 @@ void setup() {
   TimeManager::inisialisasiWaktu();
   parking.inisialisasi();
 
-  // Inisialisasi Jaringan WiFi & Auto-Connect
+  // Inisialisasi Jaringan WiFi (Dual AP + STA) & Auto-Connect
   wifi.inisialisasi();
   wifi.autoConnectJikaTersimpan(storage);
+
+  // Inisialisasi Web Dashboard PWA & WebSocket Server
+  webDashboard.inisialisasi();
 
   Serial.println("[SISTEM PARKIR] Seluruh modul siap beroperasi.");
 }
 
-// ═════════════════════════════════════════════════════════════
 // LOOP UTAMA
-// ═════════════════════════════════════════════════════════════
-
 void loop() {
   unsigned long sekarang = millis();
 
@@ -115,10 +111,13 @@ void loop() {
   debugCtrl.populateUIState(state);
 
   // Tandai dirty jika ada penekanan tombol
-  if (tombol != '\0' && tombol != NO_KEY) {
+  if (tombol != '\0') {
     displayMgr.markDirty();
   }
 
   // 5. Render Layar OLED dengan Frame Throttling
   displayMgr.render(state, wifi);
+
+  // 6. Layani Client Web HTTP & WebSocket Telemetri Real-Time
+  webDashboard.update(state);
 }

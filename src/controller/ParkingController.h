@@ -15,7 +15,15 @@ public:
   void inisialisasi();
   void handleLoop(StatusSistem &status, char tombol, unsigned long sekarang);
 
-  // Getters & Setters
+  // Kontrol Jarak Jauh (Web Manual Control)
+  void bukaManual();
+  void tutupManual();
+  void toggleKunciDarurat();
+  bool isGateTerkunci() const;
+  bool isGateTerbuka() const;
+  int getSudutGate() const;
+
+  // Getters & Setters Kuota
   int getSlotTersedia() const;
   int getKapasitasMaksimal() const;
   void setSlotTersedia(int val);
@@ -47,6 +55,11 @@ private:
   bool gateDibukaLewatSensor;
 
   int hitunganTombolD;
+  bool gateTerkunci;
+
+  unsigned long waktuMobilKeluarSelesai;
+  bool mobilKeluarPending;
 };
 
 #endif // PARKING_CONTROLLER_H
+

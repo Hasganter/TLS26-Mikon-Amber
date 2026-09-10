@@ -1,6 +1,6 @@
 # Sistem Counter & Portal Parkir Otomatis (Dual Lane) — ESP32
 
-Sistem penghitung dan pengatur slot parkir otomatis berbasis ESP32 DevKit C V4 dengan dua jalur independen (Lane Kiri untuk Masuk berportal servo, Lane Kanan untuk Keluar tanpa portal), antarmuka grafis OLED 128x64 SSD1306 (I2C), keypad matriks membran 4x4, software RTC internal POSIX, helper pengetikan teks multi-tap T9 ala ponsel klasik, pemindai & pengelola koneksi WiFi asinkron, dan penyimpanan data permanen Non-Volatile Storage (NVS Flash) via library `Preferences`.
+Sistem penghitung dan pengatur slot parkir otomatis berbasis ESP32 DevKit C V4 dengan dua jalur independen (Lane Kiri untuk Masuk berportal servo, Lane Kanan untuk Keluar tanpa portal), antarmuka grafis OLED 128x64 SSD1306 (I2C), keypad matriks membran 4x4, software RTC internal POSIX, helper pengetikan teks multi-tap T9 ala ponsel klasik, pemindai & pengelola koneksi WiFi asinkron, Web Dashboard PWA real-time dengan ServiceWorker Cache-First & WebSocket Server (Clean Industrial Tech), dan penyimpanan data permanen Non-Volatile Storage (NVS Flash) via library `Preferences`.
 
 ---
 
@@ -49,7 +49,7 @@ TLS26-Mikon-Amber/
 ├── libraries.txt                    # Dependensi library Wokwi
 └── src/
     ├── config/
-    │   ├── Config.h                 # Konfigurasi pinout, konstanta timing, batas slot 999
+    │   ├── Config.h                 # Konfigurasi pinout, konstanta timing, batas slot 999, web port
     │   └── SystemTypes.h            # Enum StatusSistem, InputMode, WiFiStatus, struct UIState
     ├── hardware/
     │   ├── GateServo.h/.cpp         # Driver pergerakan motor servo SG90
@@ -61,14 +61,16 @@ TLS26-Mikon-Amber/
     ├── input/
     │   └── KeypadInputHelper.h/.cpp # Engine pengetikan teks Multi-Tap T9 (ABC/abc/123)
     ├── network/
-    │   └── WiFiManager.h/.cpp       # Pengelola WiFi asinkron (scan, connect, reconnect)
+    │   ├── WiFiManager.h/.cpp       # Pengelola WiFi asinkron (Dual AP + STA, auto-connect)
+    │   ├── WebDashboardManager.h/.cpp # Server HTTP port 80 & WebSocket server port 81
+    │   └── WebBundle.h              # PROGMEM bundle HTML5 SPA, ServiceWorker, Manifest
     ├── ui/
     │   ├── DisplayManager.h/.cpp    # Core OLED driver, throttling I2C & dirty flag
     │   ├── UIHelper.h/.cpp          # Helper teks marquee scroll, header, footer
     │   ├── UIViewParking.h/.cpp     # View Standby, Countdown, Gate Terbuka, Lane Keluar
     │   └── UIViewDebug.h/.cpp       # View Menu, Waktu, Tanggal, Slot, WiFi Scan & Pass
     └── controller/
-        ├── ParkingController.h/.cpp # FSM Alur Operasional Parkir Utama
+        ├── ParkingController.h/.cpp # FSM Operasional Parkir & Remote Manual Control
         └── DebugController.h/.cpp   # FSM Menu Pengaturan & Koneksi WiFi
 ```
 
@@ -79,6 +81,8 @@ TLS26-Mikon-Amber/
 - **Kapasitas Maksimal (`kapasitasMaksimal`)**: Default `5` slot (`DEFAULT_KAPASITAS_MAKSIMAL`), dapat dikonfigurasi dinamis hingga **999** slot via NVS Flash (`namespace: "parking"`, `key: "max_slots"`).
 - **Slot Tersedia Saat Ini (`slotTersedia`)**: Dimuat dan disimpan permanen pada NVS namespace `"parking"`, key `"slots"`.
 - **Kredensial WiFi**: Disimpan permanen pada NVS namespace `"parking"`, key `"wifi_ssid"` dan `"wifi_pass"`.
+- **Port Web**: HTTP Port `80` (Aset statis PWA) dan WebSocket Port `81` (Telemetri real-time).
+- **Hotspot Cadangan (SoftAP)**: SSID `TLS26-Parkir`, Password `adminparkir`, IP `192.168.4.1`.
 - **Ambang Deteksi Jarak (`AMBANG_DETEKSI_CM`)**: `40.0 cm`.
 - **Pewaktu Siklus Standby (`PERIODE_STANDBY_SCREEN`)**: `30000 ms` (30 detik).
 - **Timeout Hitung Mundur Masuk (`TIMEOUT_COUNTDOWN_5S`)**: `5000 ms` (5 detik).
@@ -219,3 +223,36 @@ Menu utama konfigurasi:
 
 1. **OLED Frame Throttling**: Bus I2C hanya mentransfer buffer frame jika ada perubahan data/status (`isDirty`), saat jam berganti (500 ms), atau saat marquee scrolling aktif (dibatasi 33 ms / ~30 FPS). Ini memangkas beban CPU sebesar >80%.
 2. **Asynchronous WiFi Scanning**: Pemindaian jaringan berjalan di latar belakang tanpa membekukan deteksi sensor ultrasonik atau pergerakan palang pintu.
+
+---
+
+## 6. Web Dashboard PWA & WebSocket
+
+Sistem dilengkapi konsol operasional berbasis web modern dengan estetika **Clean Industrial Tech**:
+
+### A. Fitur Antarmuka
+1. **Live Monitor & Telemetri**:
+   - Display ketersediaan slot real-time (`003 / 005`), progress bar persentase okupansi, dan badge status.
+   - Status visual portal animasi SVG (0° tertutup / 90° terbuka / safety hold).
+   - Indikator dual sensor ultrasonik lane masuk & keluar (jarak cm dan badge `TERDETEKSI` / `KOSONG`).
+   - Jam RTC sistem, status FSM aktif, uptime, dan indikator sinyal RSSI.
+2. **Remote Manual Control**:
+   - Tombol manual: `Buka Portal (90°)`, `Tutup Portal (0°)`, dan `Kunci Darurat`.
+3. **Konfigurasi Kuota Slot**:
+   - Form ubah `Slot Tersedia` dan `Kapasitas Maksimal` (1–999) langsung ke Flash NVS.
+4. **Sinkronisasi Jam 1-Klik**:
+   - Tombol `Sync RTC` untuk menyamakan waktu ESP32 dengan browser laptop/smartphone.
+5. **Live Activity Console**:
+   - Terminal log peristiwa berurutan dengan penanda warna (`[GATE]`, `[ENTRY]`, `[EXIT]`, `[CONFIG]`, `[SYSTEM]`).
+
+### B. Arsitektur Komunikasi & PWA
+- **HTTP WebServer (Port 80)**: Melayani halaman aplikasi tunggal (`/`), ServiceWorker (`/sw.js`), dan Web App Manifest (`/manifest.json`).
+- **PWA ServiceWorker**: Menerapkan strategi **Cache-First** sehingga browser hanya mengunduh aset statis satu kali (< 20 KB) dan menyimpannya di cache lokal. Pemuatan berikutnya berlangsung seketika (0 ms) tanpa membebani ESP32.
+- **WebSocket Server (Port 81)**: Komunikasi dua arah berbasis JSON:
+  - Server melakukan *broadcast telemetry* secara push-on-change atau periodik 1 detik.
+  - Perintah dari browser (`gate`, `set_slots`, `sync_time`, `set_wifi`) dieksekusi secara instan tanpa handshake HTTP berulang.
+- **Konektivitas Dual-Mode (STA + Fallback SoftAP)**:
+  - Dapat diakses melalui IP jaringan lokal (misal `http://192.168.1.50`) atau melalui Hotspot mandiri ESP32:
+    - **SSID**: `TLS26-Parkir`
+    - **Password**: `adminparkir`
+    - **URL**: `http://192.168.4.1`

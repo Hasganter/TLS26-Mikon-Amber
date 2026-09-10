@@ -6,10 +6,18 @@ WiFiManager::WiFiManager()
     statusKoneksi(WIFI_STATUS_DISCONNECTED),
     waktuMulaiKoneksi(0),
     targetSSID(""),
-    assignedIP("") {}
+    assignedIP(""),
+    softAPIP("192.168.4.1") {}
 
 void WiFiManager::inisialisasi() {
-  WiFi.mode(WIFI_STA);
+  // Aktifkan mode ganda (Station + Hotspot SoftAP)
+  WiFi.mode(WIFI_AP_STA);
+
+  // Nyalakan SoftAP cadangan
+  WiFi.softAP(AP_FALLBACK_SSID, AP_FALLBACK_PASS);
+  softAPIP = WiFi.softAPIP().toString();
+  Serial.printf("[WIFI] Hotspot SoftAP Aktif: SSID: '%s' | IP: http://%s\r\n", AP_FALLBACK_SSID, softAPIP.c_str());
+
   WiFi.disconnect();
 }
 
@@ -38,7 +46,7 @@ void WiFiManager::update() {
     if (WiFi.status() == WL_CONNECTED) {
       statusKoneksi = WIFI_STATUS_CONNECTED;
       assignedIP = WiFi.localIP().toString();
-      Serial.printf("[WIFI] Berhasil terhubung! IP: %s\n", assignedIP.c_str());
+      Serial.printf("[WIFI] Berhasil terhubung ke '%s'! IP STA: http://%s\r\n", targetSSID.c_str(), assignedIP.c_str());
     } else if (millis() - waktuMulaiKoneksi >= WIFI_CONNECT_TIMEOUT_MS) {
       statusKoneksi = WIFI_STATUS_FAILED;
       WiFi.disconnect();
@@ -48,7 +56,7 @@ void WiFiManager::update() {
     if (WiFi.status() != WL_CONNECTED) {
       statusKoneksi = WIFI_STATUS_DISCONNECTED;
       assignedIP = "";
-      Serial.println("[WIFI] Terputus dari jaringan.");
+      Serial.println("[WIFI] Terputus dari router jaringan.");
     }
   }
 }
@@ -59,7 +67,7 @@ void WiFiManager::hubungkan(const String &ssid, const String &password) {
   waktuMulaiKoneksi = millis();
   assignedIP = "";
 
-  Serial.printf("[WIFI] Menghubungkan ke SSID: %s...\n", ssid.c_str());
+  Serial.printf("[WIFI] Menghubungkan ke SSID: %s...\r\n", ssid.c_str());
   if (password.length() > 0) {
     WiFi.begin(ssid.c_str(), password.c_str());
   } else {
@@ -77,7 +85,7 @@ void WiFiManager::putuskan() {
 void WiFiManager::autoConnectJikaTersimpan(StorageManager &storage) {
   String savedSSID, savedPass;
   if (storage.muatWiFi(savedSSID, savedPass)) {
-    Serial.printf("[WIFI] Kredensial tersimpan ditemukan: %s. Menghubungkan di background...\n", savedSSID.c_str());
+    Serial.printf("[WIFI] Kredensial tersimpan ditemukan: %s. Menghubungkan di background...\r\n", savedSSID.c_str());
     hubungkan(savedSSID, savedPass);
   } else {
     Serial.println("[WIFI] Tidak ada kredensial WiFi tersimpan.");
@@ -113,6 +121,17 @@ WiFiConnectionStatus WiFiManager::getStatusKoneksi() const {
 
 String WiFiManager::getIP() const {
   return assignedIP;
+}
+
+String WiFiManager::getSoftAPIP() const {
+  return softAPIP;
+}
+
+int32_t WiFiManager::getActiveRSSI() const {
+  if (statusKoneksi == WIFI_STATUS_CONNECTED) {
+    return WiFi.RSSI();
+  }
+  return -100;
 }
 
 String WiFiManager::getTargetSSID() const {

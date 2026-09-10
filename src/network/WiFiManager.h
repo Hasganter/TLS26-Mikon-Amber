@@ -11,7 +11,7 @@ class WiFiManager {
 public:
   WiFiManager();
 
-  // Inisialisasi WiFi station mode
+  // Inisialisasi WiFi dual mode (STA + Hotspot SoftAP Fallback)
   void inisialisasi();
 
   // Mulai pemindaian asinkron (non-blocking)
@@ -20,10 +20,10 @@ public:
   // Update status pemindaian dan koneksi secara berkala
   void update();
 
-  // Mulai proses koneksi ke SSID tertentu
+  // Mulai proses koneksi ke SSID tertentu (STA)
   void hubungkan(const String &ssid, const String &password);
 
-  // Putuskan koneksi WiFi
+  // Putuskan koneksi WiFi STA
   void putuskan();
 
   // Cek apakah ada kredensial tersimpan di NVS dan konek otomatis
@@ -38,6 +38,8 @@ public:
 
   WiFiConnectionStatus getStatusKoneksi() const;
   String getIP() const;
+  String getSoftAPIP() const;
+  int32_t getActiveRSSI() const;
   String getTargetSSID() const;
   bool isTerhubung() const;
 
@@ -48,6 +50,7 @@ private:
   unsigned long waktuMulaiKoneksi;
   String targetSSID;
   String assignedIP;
+  String softAPIP;
 };
 
 #endif // WIFI_MANAGER_H
