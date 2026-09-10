@@ -1,6 +1,4 @@
-#ifndef CONFIG_H
-#define CONFIG_H
-
+#pragma once
 #include <Arduino.h>
 #include "SystemTypes.h"
 
@@ -54,4 +52,3 @@ const uint16_t WS_PORT   = 81;
 const char AP_FALLBACK_SSID[] = "TLS26-Parkir";
 const char AP_FALLBACK_PASS[] = "adminparkir";
 
-#endif // CONFIG_H

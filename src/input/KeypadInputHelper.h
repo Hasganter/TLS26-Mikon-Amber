@@ -1,6 +1,4 @@
-#ifndef KEYPAD_INPUT_HELPER_H
-#define KEYPAD_INPUT_HELPER_H
-
+#pragma once
 #include <Arduino.h>
 #include "../config/SystemTypes.h"
 #include "../config/Config.h"
@@ -61,4 +59,3 @@ private:
   const char* getCharListForKey(char key) const;
 };
 
-#endif // KEYPAD_INPUT_HELPER_H

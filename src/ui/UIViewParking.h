@@ -1,6 +1,4 @@
-#ifndef UI_VIEW_PARKING_H
-#define UI_VIEW_PARKING_H
-
+#pragma once
 #include <Arduino.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -16,4 +14,3 @@ public:
   static void renderLaneKeluar(Adafruit_SSD1306 &display, const UIState &state);
 };
 
-#endif // UI_VIEW_PARKING_H

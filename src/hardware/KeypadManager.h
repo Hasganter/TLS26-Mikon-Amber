@@ -1,6 +1,4 @@
-#ifndef KEYPAD_MANAGER_H
-#define KEYPAD_MANAGER_H
-
+#pragma once
 #include <Arduino.h>
 #include <Keypad.h>
 #include "../config/Config.h"
@@ -19,4 +17,3 @@ private:
   Keypad keypad;
 };
 
-#endif // KEYPAD_MANAGER_H

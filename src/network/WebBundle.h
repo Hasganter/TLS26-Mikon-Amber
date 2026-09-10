@@ -1,5 +1,4 @@
-#ifndef WEB_BUNDLE_H
-#define WEB_BUNDLE_H
+#pragma once
 
 #include <Arduino.h>
 
@@ -617,4 +616,3 @@ const char PAGE_INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
 </html>
 )rawliteral";
 
-#endif // WEB_BUNDLE_H

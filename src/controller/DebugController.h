@@ -1,6 +1,4 @@
-#ifndef DEBUG_CONTROLLER_H
-#define DEBUG_CONTROLLER_H
-
+#pragma once
 #include <Arduino.h>
 #include "../config/SystemTypes.h"
 #include "../config/Config.h"
@@ -47,4 +45,3 @@ private:
   void resetActivity(unsigned long sekarang);
 };
 
-#endif // DEBUG_CONTROLLER_H

@@ -1,6 +1,4 @@
-#ifndef UI_HELPER_H
-#define UI_HELPER_H
-
+#pragma once
 #include <Arduino.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -24,4 +22,3 @@ public:
   static void drawFooter(Adafruit_SSD1306 &display, const char* leftGuide, const char* rightGuide);
 };
 
-#endif // UI_HELPER_H

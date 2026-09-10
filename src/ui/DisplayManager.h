@@ -1,6 +1,4 @@
-#ifndef DISPLAY_MANAGER_H
-#define DISPLAY_MANAGER_H
-
+#pragma once
 #include <Arduino.h>
 #include <Wire.h>
 #include <Adafruit_GFX.h>
@@ -32,4 +30,3 @@ private:
   unsigned long waktuDetikTerakhir;
 };
 
-#endif // DISPLAY_MANAGER_H

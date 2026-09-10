@@ -1,6 +1,4 @@
-#ifndef WEB_DASHBOARD_MANAGER_H
-#define WEB_DASHBOARD_MANAGER_H
-
+#pragma once
 #include <Arduino.h>
 #include <WebServer.h>
 #include <WebSocketsServer.h>
@@ -58,6 +56,4 @@ private:
   int extractJsonInt(const String &json, const String &key, int fallback = 0);
   String extractJsonString(const String &json, const String &key, const String &fallback = "");
 };
-
-#endif // WEB_DASHBOARD_MANAGER_H
 

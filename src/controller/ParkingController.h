@@ -1,6 +1,4 @@
-#ifndef PARKING_CONTROLLER_H
-#define PARKING_CONTROLLER_H
-
+#pragma once
 #include <Arduino.h>
 #include "../config/SystemTypes.h"
 #include "../config/Config.h"
@@ -60,6 +58,4 @@ private:
   unsigned long waktuMobilKeluarSelesai;
   bool mobilKeluarPending;
 };
-
-#endif // PARKING_CONTROLLER_H
 

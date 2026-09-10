@@ -1,6 +1,4 @@
-#ifndef TIME_MANAGER_H
-#define TIME_MANAGER_H
-
+#pragma once
 #include <Arduino.h>
 #include <time.h>
 #include <sys/time.h>
@@ -23,4 +21,3 @@ private:
   static const char* NAMA_HARI[];
 };
 
-#endif // TIME_MANAGER_H

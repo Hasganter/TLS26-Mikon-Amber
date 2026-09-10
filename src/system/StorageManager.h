@@ -1,6 +1,4 @@
-#ifndef STORAGE_MANAGER_H
-#define STORAGE_MANAGER_H
-
+#pragma once
 #include <Arduino.h>
 #include <Preferences.h>
 
@@ -30,4 +28,3 @@ private:
   Preferences prefs;
 };
 
-#endif // STORAGE_MANAGER_H

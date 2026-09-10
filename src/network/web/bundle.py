@@ -31,8 +31,7 @@ def generate_bundle():
     with open(html_path, "r", encoding="utf-8") as f:
         html_content = f.read().strip()
 
-    header_content = f"""#ifndef WEB_BUNDLE_H
-#define WEB_BUNDLE_H
+    header_content = f"""#pragma once
 
 #include <Arduino.h>
 
@@ -48,7 +47,6 @@ const char PAGE_SERVICE_WORKER_JS[] PROGMEM = R"rawliteral(
 const char PAGE_INDEX_HTML[] PROGMEM = R"rawliteral({html_content}
 )rawliteral";
 
-#endif // WEB_BUNDLE_H
 """
 
     # Avoid updating timestamp if file content has not changed

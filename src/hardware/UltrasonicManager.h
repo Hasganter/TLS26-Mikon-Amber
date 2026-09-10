@@ -1,6 +1,4 @@
-#ifndef ULTRASONIC_MANAGER_H
-#define ULTRASONIC_MANAGER_H
-
+#pragma once
 #include <Arduino.h>
 #include "../config/Config.h"
 
@@ -31,4 +29,3 @@ private:
   float jarakKanan;
 };
 
-#endif // ULTRASONIC_MANAGER_H

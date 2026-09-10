@@ -1,6 +1,4 @@
-#ifndef GATE_SERVO_H
-#define GATE_SERVO_H
-
+#pragma once
 #include <Arduino.h>
 #include <ESP32Servo.h>
 #include "../config/Config.h"
@@ -26,4 +24,3 @@ private:
   int posisiSudut;
 };
 
-#endif // GATE_SERVO_H

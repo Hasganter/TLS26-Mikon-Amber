@@ -1,6 +1,4 @@
-#ifndef WIFI_MANAGER_H
-#define WIFI_MANAGER_H
-
+#pragma once
 #include <Arduino.h>
 #include <WiFi.h>
 #include "../config/SystemTypes.h"
@@ -53,4 +51,3 @@ private:
   String softAPIP;
 };
 
-#endif // WIFI_MANAGER_H

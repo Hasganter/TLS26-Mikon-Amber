@@ -1,6 +1,4 @@
-#ifndef SYSTEM_TYPES_H
-#define SYSTEM_TYPES_H
-
+#pragma once
 #include <Arduino.h>
 
 // STATUS SISTEM (FINITE STATE MACHINE)
@@ -76,4 +74,3 @@ struct UIState {
   const char* t9ModeStr;
 };
 
-#endif // SYSTEM_TYPES_H
