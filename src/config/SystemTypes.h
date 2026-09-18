@@ -13,7 +13,8 @@ enum StatusSistem {
   STATUS_DEBUG_SLOT,        // Sub-menu pengaturan slot parkir terpadu (max 999)
   STATUS_DEBUG_WIFI_SCAN,   // Sub-menu daftar pemindaian jaringan WiFi
   STATUS_DEBUG_WIFI_PASS,   // Sub-menu input password WiFi via T9
-  STATUS_DEBUG_WIFI_MANUAL  // Sub-menu input manual SSID WiFi via T9
+  STATUS_DEBUG_WIFI_MANUAL, // Sub-menu input manual SSID WiFi via T9
+  STATUS_DEBUG_KOMPONEN     // Sub-menu status live semua komponen yang diharapkan
 };
 
 // MODE INPUT TEKS KEYPAD (MULTI-TAP T9)
@@ -72,5 +73,15 @@ struct UIState {
   // Helper Input T9
   String t9DisplayText;
   const char* t9ModeStr;
+
+  // Status Diagnostik Komponen
+  int missingComponentCount;
+  bool muteMissingNotifier;
+  bool oledOk;
+  bool usLeftOk;
+  bool usRightOk;
+  bool servoOk;
+  bool keypadOk;
+  int gateAngle;
 };
 

@@ -20,12 +20,18 @@ public:
   bool isMobilTerdeteksiKiri() const;
   bool isMobilTerdeteksiKanan() const;
 
+  // Dapatkan status koneksi sensor
+  bool isTerhubungKiri() const;
+  bool isTerhubungKanan() const;
+
 private:
-  float bacaSensor(uint8_t pinTrig, uint8_t pinEcho);
+  float bacaSensor(uint8_t pinTrig, uint8_t pinEcho, bool &outTerhubung);
 
   unsigned long waktuSensorTerakhir;
   bool giliranKiri;
   float jarakKiri;
   float jarakKanan;
+  bool terhubungKiri;
+  bool terhubungKanan;
 };
 

@@ -81,6 +81,9 @@ void loop() {
   // 3. Delegasi FSM ke Kontroler Sesuai Domain
   if (statusSaatIni <= STATUS_LANE_KELUAR) {
     parking.handleLoop(statusSaatIni, tombol, sekarang);
+    if (statusSaatIni > STATUS_LANE_KELUAR) {
+      debugCtrl.resetActivity(sekarang);
+    }
   } else {
     debugCtrl.handleLoop(statusSaatIni, tombol, sekarang);
   }
@@ -106,6 +109,28 @@ void loop() {
   state.bufWaktu = bufWaktu;
   state.bufTanggal = bufTanggal;
   state.bufHari = bufHari;
+
+  // Status Diagnostik Seluruh Komponen Hardware
+  bool oledOk = displayMgr.isOk();
+  bool usLeftOk = ultrasonic.isTerhubungKiri();
+  bool usRightOk = ultrasonic.isTerhubungKanan();
+  bool servoOk = gate.isOk();
+  bool keypadOk = keypadMgr.isOk();
+
+  int missingCount = 0;
+  if (!oledOk) missingCount++;
+  if (!usLeftOk) missingCount++;
+  if (!usRightOk) missingCount++;
+  if (!servoOk) missingCount++;
+  if (!keypadOk) missingCount++;
+
+  state.missingComponentCount = missingCount;
+  state.oledOk = oledOk;
+  state.usLeftOk = usLeftOk;
+  state.usRightOk = usRightOk;
+  state.servoOk = servoOk;
+  state.keypadOk = keypadOk;
+  state.gateAngle = gate.getSudut();
 
   // Isi data debug ke bundle UIState
   debugCtrl.populateUIState(state);

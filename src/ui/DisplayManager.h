@@ -17,6 +17,9 @@ public:
   // Inisialisasi layar OLED dan tampilkan splash screen
   bool inisialisasi();
 
+  // Cek apakah layar OLED terhubung dan siap
+  bool isOk() const;
+
   // Render antarmuka visual sesuai status sistem saat ini
   void render(const UIState &state, const WiFiManager &wifi);
 
@@ -26,7 +29,9 @@ public:
 private:
   Adafruit_SSD1306 display;
   bool isDirty;
+  bool terhubung;
   unsigned long waktuRenderTerakhir;
   unsigned long waktuDetikTerakhir;
+  unsigned long waktuProbeTerakhir;
 };
 

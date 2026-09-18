@@ -17,5 +17,6 @@ public:
   static void renderWiFiPassword(Adafruit_SSD1306 &display, const UIState &state);
   static void renderWiFiManual(Adafruit_SSD1306 &display, const UIState &state);
   static void renderWiFiStatus(Adafruit_SSD1306 &display, const UIState &state);
+  static void renderKomponen(Adafruit_SSD1306 &display, const UIState &state);
 };
 

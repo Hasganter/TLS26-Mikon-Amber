@@ -126,7 +126,7 @@ Dipicu saat pengunjung menekan tombol keypad apapun di lane masuk ketika slot te
 - **Cabang Aksi:**
   1. **Fast-Bypass Sensor**: Jika sensor lane kiri mendeteksi kendaraan (`< 40 cm`), langsung membuka gate (`STATUS_GATE_TERBUKA`).
   2. **Pembatalan**: Tekan tombol `C` $\to$ kembali ke `STATUS_STANDBY`.
-  3. **Pintasan Debug Mode**: Tekan `D` 3 kali berturut-turut (`Bebas + D + D + D`) $\to$ langsung beralih ke `STATUS_DEBUG_MENU`.
+  3. **Pintasan Debug Mode**: Tekan `D` 3 kali berturut-turut (dapat ditekan langsung dari `STATUS_STANDBY` maupun dari `STATUS_COUNTDOWN_5S`, bahkan saat kuota slot habis/parkir penuh) $\to$ langsung beralih ke `STATUS_DEBUG_MENU`.
   4. **Timeout Failsafe (5 Detik)**: Gate otomatis dibuka jika tidak dibatalkan.
 
 ---
@@ -137,6 +137,7 @@ Dipicu saat pengunjung menekan tombol keypad apapun di lane masuk ketika slot te
 - **Safety Hold**: Selama mobil terdeteksi di bawah portal, penutupan ditahan.
 - **Penutupan Aman**: Begitu mobil selesai lewat, hitung mundur aman 5 detik berjalan. Setelah 5 detik, servo kembali ke **0°**, slot berkurang 1, disimpan ke NVS Flash, dan kembali ke `STATUS_STANDBY`.
 - **Safety Timeout (30 Detik)**: Jika mobil tidak lewat dalam 30 detik, gate otomatis menutup demi keamanan.
+- **Opsi Tutup Sekarang**: Setelah 5 detik pertama portal dibuka, pengguna/operator dapat menekan tombol `C` untuk langsung menutup gate seketika tanpa harus menunggu 30 detik.
 
 ---
 
@@ -152,10 +153,10 @@ Dipicu saat sensor ultrasonik lane kanan mendeteksi kendaraan keluar (`jarakKana
 Menu utama konfigurasi:
 - Header: `--- DEBUG MODE ---`
 - Pilihan Menu:
-  - `1: Waktu  (HHMMSS)` $\to$ `STATUS_DEBUG_WAKTU`
-  - `2: Tanggal(DDMMYYYY)` $\to$ `STATUS_DEBUG_TANGGAL`
-  - `3: Slot Parkir` $\to$ `STATUS_DEBUG_SLOT`
-  - `4: Koneksi WiFi` $\to$ `STATUS_DEBUG_WIFI_SCAN`
+  - `1: Waktu    2: Tanggal` $\to$ `STATUS_DEBUG_WAKTU` / `STATUS_DEBUG_TANGGAL`
+  - `3: Slot     4: WiFi` $\to$ `STATUS_DEBUG_SLOT` / `STATUS_DEBUG_WIFI_SCAN`
+  - `5: Status Komponen` $\to$ `STATUS_DEBUG_KOMPONEN` (Live telemetri peranti tiap 1 detik)
+  - `6: Mute Notif [ON/OFF]` $\to$ Toggle pembungkaman kedipan notifikasi komponen lepas (sementara hingga power reset)
   - `C: Keluar ke Standby`
 - **Auto Timeout 30 Detik**: Keluar otomatis jika idle selama 30 detik.
 
@@ -216,6 +217,16 @@ Menu utama konfigurasi:
   - Tombol `#`: Selesai / Hubungkan.
   - Tombol `C`: Batal.
 - Saat berhasil terhubung: Menampilkan IP Address (misal `192.168.1.50`) dan kredensial otomatis disimpan ke NVS Flash untuk auto-connect saat boot berikutnya.
+
+---
+
+### 11. `STATUS_DEBUG_KOMPONEN` (Diagnostik Status Komponen Hardware Live)
+- Menampilkan status langsung seluruh peranti keras yang diharapkan (`OLED`, `US-L`, `US-R`, `SERVO`, `KEYPAD`) dengan pembaruan *live* setiap **1 detik**.
+- Jika terdapat komponen yang terlepas/hilang:
+  - Header layar default (`STATUS_STANDBY`) akan berkedip antara `"SELAMAT DATANG"` dan `"-{x} Comp. Detected"` setiap 1 detik.
+  - Opsi `6: Mute Notif` di menu debug dapat digunakan untuk membungkam notifikasi kedipan ini sementara hingga siklus daya berikutnya (*volatile until power reset*).
+- Tombol:
+  - `C`: Kembali ke Menu Utama Debug.
 
 ---
 

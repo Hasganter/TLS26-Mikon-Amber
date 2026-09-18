@@ -10,6 +10,7 @@ DebugController::DebugController(
     waktuAktivitasTerakhir(0),
     waktuFeedback(0),
     pesanFeedback(""),
+    muteMissingNotifier(false),
     bufferInput(""),
     fokusMaksimal(false),
     bufferTersedia(""),
@@ -20,6 +21,14 @@ DebugController::DebugController(
 
 void DebugController::resetActivity(unsigned long sekarang) {
   waktuAktivitasTerakhir = sekarang;
+}
+
+bool DebugController::isMuteMissingNotifier() const {
+  return muteMissingNotifier;
+}
+
+void DebugController::toggleMuteMissingNotifier() {
+  muteMissingNotifier = !muteMissingNotifier;
 }
 
 void DebugController::handleLoop(StatusSistem &status, char tombol, unsigned long sekarang) {
@@ -54,6 +63,10 @@ void DebugController::handleLoop(StatusSistem &status, char tombol, unsigned lon
           wifiSelectedIndex = 0;
           wifiScrollOffset = 0;
           wifi.mulaiPindai();
+        } else if (tombol == '5') {
+          status = STATUS_DEBUG_KOMPONEN;
+        } else if (tombol == '6') {
+          muteMissingNotifier = !muteMissingNotifier;
         } else if (tombol == 'C') {
           status = STATUS_STANDBY;
         }
@@ -295,6 +308,17 @@ void DebugController::handleLoop(StatusSistem &status, char tombol, unsigned lon
       break;
     }
 
+    // STATUS_DEBUG_KOMPONEN: Monitoring status live seluruh komponen
+    case STATUS_DEBUG_KOMPONEN: {
+      if (tombol != '\0') {
+        resetActivity(sekarang);
+        if (tombol == 'C') {
+          status = STATUS_DEBUG_MENU;
+        }
+      }
+      break;
+    }
+
     default:
       break;
   }
@@ -317,4 +341,6 @@ void DebugController::populateUIState(UIState &state) {
 
   state.t9DisplayText = inputHelper.getDisplayText(true);
   state.t9ModeStr = inputHelper.getModeStr();
+
+  state.muteMissingNotifier = muteMissingNotifier;
 }

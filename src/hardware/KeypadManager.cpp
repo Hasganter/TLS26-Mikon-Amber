@@ -14,3 +14,7 @@ KeypadManager::KeypadManager()
 char KeypadManager::bacaTombol() {
   return keypad.getKey();
 }
+
+bool KeypadManager::isOk() const {
+  return true;
+}

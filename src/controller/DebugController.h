@@ -18,6 +18,10 @@ public:
 
   void handleLoop(StatusSistem &status, char tombol, unsigned long sekarang);
   void populateUIState(UIState &state);
+  void resetActivity(unsigned long sekarang);
+
+  bool isMuteMissingNotifier() const;
+  void toggleMuteMissingNotifier();
 
 private:
   ParkingController &parking;
@@ -28,6 +32,9 @@ private:
   unsigned long waktuAktivitasTerakhir;
   unsigned long waktuFeedback;
   String pesanFeedback;
+
+  // Notifier missing components mute (volatile hingga power reset)
+  bool muteMissingNotifier;
 
   // Buffer input standar
   String bufferInput;
@@ -41,7 +48,5 @@ private:
   int wifiSelectedIndex;
   int wifiScrollOffset;
   String wifiTargetSSID;
-
-  void resetActivity(unsigned long sekarang);
 };
 

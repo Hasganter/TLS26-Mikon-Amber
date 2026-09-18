@@ -19,8 +19,17 @@ public:
   // Status apakah portal sedang terbuka
   bool isTerbuka() const;
 
+  // Status kesehatan & deteksi fisik koneksi servo
+  bool isOk();
+  int getSudut() const;
+
 private:
+  bool deteksiHardware();
+
   Servo servo;
+  uint8_t pinPwm;
   int posisiSudut;
+  bool terhubung;
+  unsigned long waktuCekTerakhir;
 };
 

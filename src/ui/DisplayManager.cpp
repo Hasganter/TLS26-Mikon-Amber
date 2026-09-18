@@ -3,12 +3,16 @@
 DisplayManager::DisplayManager()
   : display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET),
     isDirty(true),
+    terhubung(false),
     waktuRenderTerakhir(0),
-    waktuDetikTerakhir(0) {}
+    waktuDetikTerakhir(0),
+    waktuProbeTerakhir(0) {}
 
 bool DisplayManager::inisialisasi() {
   Wire.begin(PIN_OLED_SDA, PIN_OLED_SCL);
-  if (!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+  Wire.setTimeOut(10);
+  terhubung = display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+  if (!terhubung) {
     return false;
   }
   display.clearDisplay();
@@ -25,6 +29,10 @@ bool DisplayManager::inisialisasi() {
   return true;
 }
 
+bool DisplayManager::isOk() const {
+  return terhubung;
+}
+
 void DisplayManager::markDirty() {
   isDirty = true;
 }
@@ -32,9 +40,21 @@ void DisplayManager::markDirty() {
 void DisplayManager::render(const UIState &state, const WiFiManager &wifi) {
   unsigned long sekarang = millis();
 
+  // Cek koneksi OLED secara periodik tiap 1 detik
+  if (sekarang - waktuProbeTerakhir >= 1000) {
+    waktuProbeTerakhir = sekarang;
+    Wire.beginTransmission(SCREEN_ADDRESS);
+    terhubung = (Wire.endTransmission() == 0);
+  }
+
+  // Jika OLED tidak terhubung, jangan panggil instruksi I2C display untuk mencegah CPU stall
+  if (!terhubung) {
+    return;
+  }
+
   // Throttling: Cek apakah perlu render ulang (hemat CPU & I2C)
   // 1. Jika ada flag dirty (input baru, tombol ditekan, status berubah)
-  // 2. Atau setiap 500ms untuk clock update
+  // 2. Atau setiap 500ms untuk clock update / status refresh
   // 3. Atau setiap 33ms jika sedang di mode standby (animasi marquee)
   bool butuhRender = isDirty;
 
@@ -109,6 +129,10 @@ void DisplayManager::render(const UIState &state, const WiFiManager &wifi) {
 
     case STATUS_DEBUG_WIFI_MANUAL:
       UIViewDebug::renderWiFiManual(display, state);
+      break;
+
+    case STATUS_DEBUG_KOMPONEN:
+      UIViewDebug::renderKomponen(display, state);
       break;
   }
 

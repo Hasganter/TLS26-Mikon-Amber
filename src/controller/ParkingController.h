@@ -53,6 +53,7 @@ private:
   bool gateDibukaLewatSensor;
 
   int hitunganTombolD;
+  unsigned long waktuTombolDTerakhir;
   bool gateTerkunci;
 
   unsigned long waktuMobilKeluarSelesai;

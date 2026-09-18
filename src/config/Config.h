@@ -34,7 +34,7 @@ const byte PIN_KEYPAD_KOLOM[KEYPAD_KOLOM] = { 26, 25, 33, 32 };  // C1, C2, C3, 
 // PARAMETER SISTEM & TIMING
 const int DEFAULT_KAPASITAS_MAKSIMAL = 5;
 const int BATAS_MAX_SLOT = 999;
-const float AMBANG_DETEKSI_CM = 40.0f;  // Batas jarak deteksi kendaraan (cm)
+const float AMBANG_DETEKSI_CM = 10.0f;  // Batas jarak deteksi kendaraan (cm)
 
 // Konstanta Waktu (milidetik)
 const unsigned long PERIODE_STANDBY_SCREEN = 30000; // 30 detik siklus tampilan standby

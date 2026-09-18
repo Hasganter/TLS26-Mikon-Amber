@@ -27,10 +27,21 @@ void UIViewParking::renderStandby(Adafruit_SSD1306 &display, const UIState &stat
     UIHelper::drawTextScroll(display, 52, "Tekan Tombol Apapun", 1, true);
   } else {
     // 3. Kondisi Standby Normal
-    if (state.layarStandbyModeA) {
-      UIHelper::drawTextScroll(display, 2, "SELAMAT DATANG", 1, true);
+    if (state.missingComponentCount > 0 && !state.muteMissingNotifier) {
+      // Kedipkan antara "SELAMAT DATANG" dan "-{x} Comp. Detected" setiap 1 detik
+      bool tampilkanNotif = ((millis() / 1000) % 2 == 1);
+      if (tampilkanNotif) {
+        String msg = "-" + String(state.missingComponentCount) + " Comp. Detected";
+        UIHelper::drawTextScroll(display, 2, msg, 1, true);
+      } else {
+        UIHelper::drawTextScroll(display, 2, "SELAMAT DATANG", 1, true);
+      }
     } else {
-      UIHelper::drawTextScroll(display, 2, "STATUS PARKIR", 1, true);
+      if (state.layarStandbyModeA) {
+        UIHelper::drawTextScroll(display, 2, "SELAMAT DATANG", 1, true);
+      } else {
+        UIHelper::drawTextScroll(display, 2, "STATUS PARKIR", 1, true);
+      }
     }
 
     // Tampilan Angka Slot Besar di Tengah (Auto-Scaling hingga 999)
@@ -118,7 +129,12 @@ void UIViewParking::renderGateOpen(Adafruit_SSD1306 &display, const UIState &sta
     display.print(sisaDetik);
     display.print("s");
 
-    UIHelper::drawFooter(display, "Maju melewati gate", "");
+    // Jika portal sudah dibuka >= 5 detik (sisa <= 25000 ms), sediakan opsi tutup langsung
+    if (state.sisaTimeoutGateMs <= (TIMEOUT_GATE_OPEN_MAX - 5000)) {
+      UIHelper::drawFooter(display, "Tekan C: Tutup Sekarang", "");
+    } else {
+      UIHelper::drawFooter(display, "Maju melewati gate", "");
+    }
   }
 }
 

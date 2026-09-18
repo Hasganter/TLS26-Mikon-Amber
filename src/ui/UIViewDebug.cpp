@@ -5,15 +5,16 @@ void UIViewDebug::renderMenu(Adafruit_SSD1306 &display, const UIState &state) {
 
   display.setTextSize(1);
   display.setCursor(0, 14);
-  display.print("1: Waktu  (HHMMSS)");
+  display.print("1:Waktu    2:Tanggal");
   display.setCursor(0, 24);
-  display.print("2: Tanggal(DDMMYYYY)");
+  display.print("3:Slot     4:WiFi");
   display.setCursor(0, 34);
-  display.print("3: Slot Parkir");
+  display.print("5:Status Komponen");
   display.setCursor(0, 44);
-  display.print("4: Koneksi WiFi");
+  display.print("6:Mute Notif: ");
+  display.print(state.muteMissingNotifier ? "[ON]" : "[OFF]");
   display.setCursor(0, 54);
-  display.print("C: Keluar ke Standby");
+  display.print("C:Keluar ke Standby");
 }
 
 void UIViewDebug::renderWaktu(Adafruit_SSD1306 &display, const UIState &state) {
@@ -257,4 +258,56 @@ void UIViewDebug::renderWiFiStatus(Adafruit_SSD1306 &display, const UIState &sta
     display.print("Jangkauan Sinyal");
     UIHelper::drawFooter(display, "*: Ulangi", "C: Batal");
   }
+}
+
+void UIViewDebug::renderKomponen(Adafruit_SSD1306 &display, const UIState &state) {
+  UIHelper::drawHeader(display, "[ STATUS KOMPONEN ]");
+
+  display.setTextSize(1);
+
+  // Baris 1: OLED SSD1306
+  display.setCursor(0, 14);
+  display.print("OLED  : ");
+  if (state.oledOk) {
+    display.print("OK (0x3C)");
+  } else {
+    display.print("MISSING");
+  }
+
+  // Baris 2: Ultrasonic Left (Lane Masuk)
+  display.setCursor(0, 24);
+  display.print("US-L  : ");
+  if (state.usLeftOk) {
+    display.print("OK (");
+    display.print((int)state.jarakKiri);
+    display.print("cm)");
+  } else {
+    display.print("MISSING");
+  }
+
+  // Baris 3: Ultrasonic Right (Lane Keluar)
+  display.setCursor(0, 34);
+  display.print("US-R  : ");
+  if (state.usRightOk) {
+    display.print("OK (");
+    display.print((int)state.jarakKanan);
+    display.print("cm)");
+  } else {
+    display.print("MISSING");
+  }
+
+  // Baris 4: Servo Gate SG90
+  display.setCursor(0, 44);
+  display.print("SERVO : ");
+  if (state.servoOk) {
+    display.print("OK (");
+    display.print(state.gateAngle);
+    display.print(" deg)");
+  } else {
+    display.print("MISSING");
+  }
+
+  // Baris 5: Keypad Membran 4x4
+  display.setCursor(0, 54);
+  display.print("KEYPAD: OK  [C:Menu]");
 }
