@@ -28,7 +28,6 @@ void DisplayManager::scanI2C() {
 bool DisplayManager::inisialisasi() {
   Wire.begin(PIN_OLED_SDA, PIN_OLED_SCL);
   Wire.setClock(400000);
-  Wire.setTimeOut(50);
 
   // 1. Coba alamat konfigurasi utama (0x3C)
   oledAddress = SCREEN_ADDRESS;

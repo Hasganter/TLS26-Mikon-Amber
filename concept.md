@@ -61,9 +61,7 @@ TLS26-Mikon-Amber/
     ├── input/
     │   └── KeypadInputHelper.h/.cpp # Engine pengetikan teks Multi-Tap T9 (ABC/abc/123)
     ├── network/
-    │   ├── WiFiManager.h/.cpp       # Pengelola WiFi asinkron (Dual AP + STA, auto-connect)
-    │   ├── WebDashboardManager.h/.cpp # Server HTTP port 80 & WebSocket server port 81
-    │   └── WebBundle.h              # PROGMEM bundle HTML5 SPA, ServiceWorker, Manifest
+    │   └── WiFiManager.h/.cpp       # Pengelola WiFi asinkron (Dual AP + STA, auto-connect)
     ├── ui/
     │   ├── DisplayManager.h/.cpp    # Core OLED driver, throttling I2C & dirty flag
     │   ├── UIHelper.h/.cpp          # Helper teks marquee scroll, header, footer
@@ -81,7 +79,6 @@ TLS26-Mikon-Amber/
 - **Kapasitas Maksimal (`kapasitasMaksimal`)**: Default `5` slot (`DEFAULT_KAPASITAS_MAKSIMAL`), dapat dikonfigurasi dinamis hingga **999** slot via NVS Flash (`namespace: "parking"`, `key: "max_slots"`).
 - **Slot Tersedia Saat Ini (`slotTersedia`)**: Dimuat dan disimpan permanen pada NVS namespace `"parking"`, key `"slots"`.
 - **Kredensial WiFi**: Disimpan permanen pada NVS namespace `"parking"`, key `"wifi_ssid"` dan `"wifi_pass"`.
-- **Port Web**: HTTP Port `80` (Aset statis PWA) dan WebSocket Port `81` (Telemetri real-time).
 - **Hotspot Cadangan (SoftAP)**: SSID `TLS26-Parkir`, Password `adminparkir`, IP `192.168.4.1`.
 - **Ambang Deteksi Jarak (`AMBANG_DETEKSI_CM`)**: `10.0 cm`.
 - **Pewaktu Siklus Standby (`PERIODE_STANDBY_SCREEN`)**: `30000 ms` (30 detik).
@@ -237,31 +234,4 @@ Menu utama konfigurasi:
 
 ## 6. Web Dashboard PWA & WebSocket
 
-Sistem dilengkapi konsol operasional berbasis web modern dengan estetika **Clean Industrial Tech**:
-
-### A. Fitur Antarmuka
-1. **Live Monitor & Telemetri**:
-   - Display ketersediaan slot real-time (`003 / 005`), progress bar persentase okupansi, dan badge status.
-   - Status visual portal animasi SVG (0° tertutup / 90° terbuka / safety hold).
-   - Indikator dual sensor ultrasonik lane masuk & keluar (jarak cm dan badge `TERDETEKSI` / `KOSONG`).
-   - Jam RTC sistem, status FSM aktif, uptime, dan indikator sinyal RSSI.
-2. **Remote Manual Control**:
-   - Tombol manual: `Buka Portal (90°)`, `Tutup Portal (0°)`, dan `Kunci Darurat`.
-3. **Konfigurasi Kuota Slot**:
-   - Form ubah `Slot Tersedia` dan `Kapasitas Maksimal` (1–999) langsung ke Flash NVS.
-4. **Sinkronisasi Jam 1-Klik**:
-   - Tombol `Sync RTC` untuk menyamakan waktu ESP32 dengan browser laptop/smartphone.
-5. **Live Activity Console**:
-   - Terminal log peristiwa berurutan dengan penanda warna (`[GATE]`, `[ENTRY]`, `[EXIT]`, `[CONFIG]`, `[SYSTEM]`).
-
-### B. Arsitektur Komunikasi & PWA
-- **HTTP WebServer (Port 80)**: Melayani halaman aplikasi tunggal (`/`), ServiceWorker (`/sw.js`), dan Web App Manifest (`/manifest.json`).
-- **PWA ServiceWorker**: Menerapkan strategi **Cache-First** sehingga browser hanya mengunduh aset statis satu kali (< 20 KB) dan menyimpannya di cache lokal. Pemuatan berikutnya berlangsung seketika (0 ms) tanpa membebani ESP32.
-- **WebSocket Server (Port 81)**: Komunikasi dua arah berbasis JSON:
-  - Server melakukan *broadcast telemetry* secara push-on-change atau periodik 1 detik.
-  - Perintah dari browser (`gate`, `set_slots`, `sync_time`, `set_wifi`) dieksekusi secara instan tanpa handshake HTTP berulang.
-- **Konektivitas Dual-Mode (STA + Fallback SoftAP)**:
-  - Dapat diakses melalui IP jaringan lokal (misal `http://192.168.1.50`) atau melalui Hotspot mandiri ESP32:
-    - **SSID**: `TLS26-Parkir`
-    - **Password**: `adminparkir`
-    - **URL**: `http://192.168.4.1`
+Sistem beroperasi mandiri (*standalone*) menggunakan layar OLED 0.96", Keypad matriks 4x4, dan software RTC. Modul WiFi (`WiFiManager`) tetap aktif untuk pemindaian jaringan STA melalui menu debug di layar OLED dan penyediaan SoftAP cadangan. Website/Web Dashboard bawaan telah dinonaktifkan dan dihapus dari firmware untuk memaksimalkan efisiensi memori Flash dan RAM pada ESP32.

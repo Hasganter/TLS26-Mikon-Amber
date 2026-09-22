@@ -7,7 +7,7 @@
  *   - src/hardware/   : GateServo, UltrasonicManager, KeypadManager
  *   - src/system/     : StorageManager (NVS), TimeManager (Software RTC)
  *   - src/input/      : KeypadInputHelper (Multi-Tap T9 Text Engine)
- *   - src/network/    : WiFiManager (Dual AP+STA), WebDashboardManager (PWA & WebSocket)
+ *   - src/network/    : WiFiManager (Dual AP+STA)
  *   - src/ui/         : DisplayManager, UIHelper, UIViewParking, UIViewDebug
  *   - src/controller/ : ParkingController, DebugController
  */
@@ -20,7 +20,6 @@
 #include "src/system/StorageManager.h"
 #include "src/system/TimeManager.h"
 #include "src/network/WiFiManager.h"
-#include "src/network/WebDashboardManager.h"
 #include "src/ui/DisplayManager.h"
 #include "src/controller/ParkingController.h"
 #include "src/controller/DebugController.h"
@@ -35,7 +34,6 @@ DisplayManager displayMgr;
 
 ParkingController parking(gate, ultrasonic, storage);
 DebugController debugCtrl(parking, storage, wifi);
-WebDashboardManager webDashboard(parking, storage, wifi);
 
 StatusSistem statusSaatIni = STATUS_STANDBY;
 
@@ -60,9 +58,6 @@ void setup() {
   // Inisialisasi Jaringan WiFi (Dual AP + STA) & Auto-Connect
   wifi.inisialisasi();
   wifi.autoConnectJikaTersimpan(storage);
-
-  // Inisialisasi Web Dashboard PWA & WebSocket Server
-  webDashboard.inisialisasi();
 
   Serial.println("[SISTEM PARKIR] Seluruh modul siap beroperasi.");
 }
@@ -142,7 +137,4 @@ void loop() {
 
   // 5. Render Layar OLED dengan Frame Throttling
   displayMgr.render(state, wifi);
-
-  // 6. Layani Client Web HTTP & WebSocket Telemetri Real-Time
-  webDashboard.update(state);
 }

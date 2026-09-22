@@ -5,7 +5,7 @@
   "parts": [
     { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": 140, "left": 100, "attrs": {} },
     {
-      "type": "wokwi-ssd1306",
+      "type": "board-ssd1306",
       "id": "oled1",
       "top": -50.9,
       "left": 472.3,
@@ -48,16 +48,26 @@
   "connections": [
     [ "esp:TX", "$serialMonitor:RX", "", [] ],
     [ "esp:RX", "$serialMonitor:TX", "", [] ],
-    [ "oled1:VIN", "esp:3V3", "orange", [ "v-48", "h-354.6", "v134.4", "h-249.6", "v120.8" ] ],
-    [ "oled1:CLK", "esp:22", "#1e88e5", [ "v-38.4", "h-297", "v264.8" ] ],
-    [ "oled1:DATA", "esp:21", "#43a047", [ "v-28.8", "h-278.4", "v284" ] ],
+    [ "oled1:VCC", "esp:3V3", "orange", [ "v-41.96", "h-279.92", "v134.4", "h-278.4", "v120.8" ] ],
+    [ "oled1:SCL", "esp:22", "#1e88e5", [ "v-32.36", "h-279.77", "v264.8" ] ],
+    [ "oled1:SDA", "esp:21", "#43a047", [ "v-22.76", "h-280", "v284" ] ],
+    [ "oled1:GND", "esp:GND.2", "black", [ "v-13.16", "h-241.67", "v226.4" ] ],
     [ "gateServo:PWM", "esp:4", "#00acc1", [ "h-9.6", "v236.2" ] ],
     [ "gateServo:V+", "esp:5V", "red", [ "h-9.6", "v0.1", "h-326.4", "v303.2" ] ],
+    [ "gateServo:GND", "esp:GND.2", "black", [ "h-19.2", "v140" ] ],
     [ "ultrasonicExit:VCC", "esp:5V", "red", [ "v18.3", "h140.7", "v168.8" ] ],
     [ "ultrasonicExit:ECHO", "r1:1", "#ab47bc", [ "v37.5", "h63.1" ] ],
     [ "r1:2", "r2:1", "#424242", [ "h-19.2", "v-58.8" ] ],
     [ "r2:2", "r3:1", "#424242", [] ],
-    [ "r1:2", "esp:18", "#ab47bc", [ "v46.8", "h67.2", "v172.8", "h288", "v-234.4" ] ],
+    [ "r1:2", "esp:18", "#ab47bc", [ "v8.4", "h67.2", "v211.2", "h288", "v-234.4" ] ],
+    [ "r3:2", "esp:GND.1", "black", [ "v18", "h19.2", "v-61.6" ] ],
+    [
+      "ultrasonicExit:TRIG",
+      "esp:5",
+      "magenta",
+      [ "v27.9", "h149.9", "v288", "h268.8", "v-215.2" ]
+    ],
+    [ "ultrasonicExit:GND", "esp:GND.1", "black", [ "v200.7", "h33.9", "v-61.6" ] ],
     [ "keypad1:R1", "esp:13", "#2e7d32", [ "v86.4", "h-422.4", "v-205.6" ] ],
     [ "keypad1:R2", "esp:12", "#388e3c", [ "v86.4", "h-432.4", "v-224.8" ] ],
     [ "keypad1:R3", "esp:14", "#43a047", [ "v86.4", "h-441.9", "v-234.4" ] ],
@@ -65,22 +75,7 @@
     [ "keypad1:C1", "esp:26", "#0d47a1", [ "v86.4", "h-460.9", "v-253.6" ] ],
     [ "keypad1:C2", "esp:25", "#1565c0", [ "v86.4", "h-470.4", "v-263.2" ] ],
     [ "keypad1:C3", "esp:33", "#1976d2", [ "v86.4", "h-480.15", "v-272.8" ] ],
-    [ "keypad1:C4", "esp:32", "#42a5f5", [ "v86.4", "h-489.9", "v-282.4" ] ],
-    [
-      "ultrasonicExit:TRIG",
-      "esp:5",
-      "magenta",
-      [ "v27.9", "h149.9", "v288", "h268.8", "v-215.2" ]
-    ],
-    [ "gateServo:GND", "esp:GND.2", "black", [ "h-19.2", "v140" ] ],
-    [ "oled1:GND", "esp:GND.2", "black", [ "v-18.7", "h-307", "v226.4" ] ],
-    [
-      "ultrasonicExit:GND",
-      "esp:GND.1",
-      "black",
-      [ "v200.7", "h72.3", "v105.6", "h115.2", "v-167.2" ]
-    ],
-    [ "r3:2", "esp:GND.1", "black", [ "v18", "h57.6", "v105.6", "h115.2", "v-167.2" ] ]
+    [ "keypad1:C4", "esp:32", "#42a5f5", [ "v86.4", "h-489.9", "v-282.4" ] ]
   ],
   "dependencies": {}
 }

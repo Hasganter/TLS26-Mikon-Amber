@@ -46,8 +46,6 @@ const unsigned long DELAY_SENSOR_SETELAH_GATE_MS = BUFFER_SERVO_GERAK_MS;
 const unsigned long MULTI_TAP_TIMEOUT_MS   = 800;   // 800 ms jeda commit karakter T9
 const unsigned long WIFI_CONNECT_TIMEOUT_MS= 10000; // 10 detik batas waktu koneksi WiFi
 
-// KONFIGURASI WEB SERVER & WEBSOCKET
-const uint16_t HTTP_PORT = 80;
-const uint16_t WS_PORT   = 81;
+// KONFIGURASI WIFI FALLBACK SOFTAP
 const char AP_FALLBACK_SSID[] = "TLS26-Parkir";
 const char AP_FALLBACK_PASS[] = "adminparkir";
