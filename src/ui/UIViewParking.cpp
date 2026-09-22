@@ -13,20 +13,8 @@ void UIViewParking::renderStandby(Adafruit_SSD1306 &display, const UIState &stat
     display.drawFastHLine(14, 45, 100, SSD1306_WHITE);
 
     UIHelper::drawTextScroll(display, 52, "Gerbang Dikunci", 1, true);
-  } else if (state.jarakKiri < AMBANG_DETEKSI_CM) {
-    // 2. Kasus Mobil Mendekat di Lane Masuk
-    UIHelper::drawTextScroll(display, 2, "KENDARAAN MASUK", 1, true);
-
-    display.setTextSize(2);
-    display.setCursor(34, 22);
-    display.print("TIKET");
-
-    display.drawFastHLine(14, 14, 100, SSD1306_WHITE);
-    display.drawFastHLine(14, 45, 100, SSD1306_WHITE);
-
-    UIHelper::drawTextScroll(display, 52, "Tekan Tombol Apapun", 1, true);
   } else {
-    // 3. Kondisi Standby Normal
+    // 2. Kondisi Standby Normal
     if (state.missingComponentCount > 0 && !state.muteMissingNotifier) {
       // Kedipkan antara "SELAMAT DATANG" dan "-{x} Comp. Detected" setiap 1 detik
       bool tampilkanNotif = ((millis() / 1000) % 2 == 1);
@@ -67,9 +55,9 @@ void UIViewParking::renderStandby(Adafruit_SSD1306 &display, const UIState &stat
     display.drawFastHLine(14, 14, 100, SSD1306_WHITE);
     display.drawFastHLine(14, 45, 100, SSD1306_WHITE);
 
-    // Baris Bawah
+    // Baris Bawah: Instruksi buka gate via tombol
     if (state.layarStandbyModeA) {
-      UIHelper::drawTextScroll(display, 52, "Tekan Tombol Tiket", 1, true);
+      UIHelper::drawTextScroll(display, 52, "Tekan Tombol Utk Buka", 1, true);
     } else {
       String strWaktu = String(state.bufHari) + ", " + state.bufWaktu;
       UIHelper::drawTextScroll(display, 52, strWaktu, 1, true);
@@ -90,7 +78,7 @@ void UIViewParking::renderCountdown(Adafruit_SSD1306 &display, const UIState &st
   display.print(sisaDetik);
   display.print("s");
 
-  UIHelper::drawFooter(display, "Tekan C: Batalkan", "");
+  UIHelper::drawFooter(display, "Tekan tombol: Buka Cepat", "");
 }
 
 void UIViewParking::renderGateOpen(Adafruit_SSD1306 &display, const UIState &state) {

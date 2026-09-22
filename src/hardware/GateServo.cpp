@@ -4,7 +4,8 @@ GateServo::GateServo()
   : pinPwm(PIN_SERVO_GATE),
     posisiSudut(SERVO_TUTUP),
     terhubung(false),
-    waktuCekTerakhir(0) {}
+    waktuCekTerakhir(0),
+    waktuMulaiGerak(0) {}
 
 bool GateServo::deteksiHardware() {
   bool wasAttached = servo.attached();
@@ -55,24 +56,39 @@ void GateServo::inisialisasi(uint8_t pinServo) {
 }
 
 void GateServo::buka() {
+  waktuMulaiGerak = millis();
   posisiSudut = SERVO_BUKA;
   servo.write(SERVO_BUKA);
+  Serial.printf("[SERVO] Gate dibuka (90 deg). Buffer blokir sensor: %lu ms.\r\n", BUFFER_SERVO_GERAK_MS);
 }
 
 void GateServo::tutup() {
+  waktuMulaiGerak = millis();
   posisiSudut = SERVO_TUTUP;
   servo.write(SERVO_TUTUP);
+  Serial.printf("[SERVO] Gate ditutup (0 deg). Buffer blokir sensor: %lu ms.\r\n", BUFFER_SERVO_GERAK_MS);
 }
 
 bool GateServo::isTerbuka() const {
   return (posisiSudut == SERVO_BUKA);
 }
 
+bool GateServo::isSedangBergerak() const {
+  return (millis() - waktuMulaiGerak < BUFFER_SERVO_GERAK_MS);
+}
+
+unsigned long GateServo::getWaktuMulaiGerak() const {
+  return waktuMulaiGerak;
+}
+
 bool GateServo::isOk() {
-  unsigned long sekarang = millis();
-  if (sekarang - waktuCekTerakhir >= 1000) {
-    waktuCekTerakhir = sekarang;
-    deteksiHardware();
+  // Hindari detach/attach berkala jika servo sudah terhubung atau sedang bergerak
+  if (!terhubung && !isSedangBergerak()) {
+    unsigned long sekarang = millis();
+    if (sekarang - waktuCekTerakhir >= 2000) {
+      waktuCekTerakhir = sekarang;
+      deteksiHardware();
+    }
   }
   return terhubung;
 }

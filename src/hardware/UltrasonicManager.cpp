@@ -1,23 +1,32 @@
 #include "UltrasonicManager.h"
+#include "GateServo.h"
 
 UltrasonicManager::UltrasonicManager()
   : waktuSensorTerakhir(0),
-    giliranKiri(true),
-    jarakKiri(999.0f),
-    jarakKanan(999.0f),
-    terhubungKiri(false),
-    terhubungKanan(false) {}
+    waktuBolehBaca(0),
+    jarakKeluar(999.0f),
+    terhubungKeluar(false),
+    gateServo(nullptr) {}
 
-void UltrasonicManager::inisialisasi() {
-  pinMode(PIN_TRIG_LEFT, OUTPUT);
-  pinMode(PIN_ECHO_LEFT, INPUT_PULLDOWN);
-  pinMode(PIN_TRIG_RIGHT, OUTPUT);
-  pinMode(PIN_ECHO_RIGHT, INPUT_PULLDOWN);
+void UltrasonicManager::inisialisasi(const GateServo* gate) {
+  gateServo = gate;
+  pinMode(PIN_TRIG_EXIT, OUTPUT);
+  pinMode(PIN_ECHO_EXIT, INPUT_PULLDOWN);
 
-  // Inisialisasi awal pembacaan kedua sensor
-  jarakKiri = bacaSensor(PIN_TRIG_LEFT, PIN_ECHO_LEFT, terhubungKiri);
-  delay(10);
-  jarakKanan = bacaSensor(PIN_TRIG_RIGHT, PIN_ECHO_RIGHT, terhubungKanan);
+  // Inisialisasi awal pembacaan sensor keluar jika gate tidak sedang bergerak
+  if (!isDitunda()) {
+    jarakKeluar = bacaSensor(PIN_TRIG_EXIT, PIN_ECHO_EXIT, terhubungKeluar);
+  }
+}
+
+void UltrasonicManager::setGateServo(const GateServo* gate) {
+  gateServo = gate;
+}
+
+void UltrasonicManager::tunda(unsigned long durasiMs) {
+  waktuBolehBaca = millis() + durasiMs;
+  jarakKeluar = 999.0f;
+  Serial.printf("[ULTRASONIC] Sensor ditunda %lu ms untuk stabilisasi tegangan servo.\r\n", durasiMs);
 }
 
 float UltrasonicManager::bacaSensor(uint8_t pinTrig, uint8_t pinEcho, bool &outTerhubung) {
@@ -64,37 +73,69 @@ float UltrasonicManager::bacaSensor(uint8_t pinTrig, uint8_t pinEcho, bool &outT
 
 void UltrasonicManager::perbarui() {
   unsigned long sekarang = millis();
+  if (isDitunda()) {
+    // Sedang dalam masa jeda stabilisasi tegangan saat/setelah servo bergerak
+    jarakKeluar = 999.0f;
+    return;
+  }
   if (sekarang - waktuSensorTerakhir >= INTERVAL_SENSOR_MS) {
     waktuSensorTerakhir = sekarang;
-    if (giliranKiri) {
-      jarakKiri = bacaSensor(PIN_TRIG_LEFT, PIN_ECHO_LEFT, terhubungKiri);
-    } else {
-      jarakKanan = bacaSensor(PIN_TRIG_RIGHT, PIN_ECHO_RIGHT, terhubungKanan);
-    }
-    giliranKiri = !giliranKiri;
+    jarakKeluar = bacaSensor(PIN_TRIG_EXIT, PIN_ECHO_EXIT, terhubungKeluar);
   }
 }
 
-float UltrasonicManager::getJarakKiri() const {
-  return jarakKiri;
+float UltrasonicManager::getJarakKeluar() const {
+  return jarakKeluar;
+}
+
+float UltrasonicManager::getJarak() const {
+  return jarakKeluar;
 }
 
 float UltrasonicManager::getJarakKanan() const {
-  return jarakKanan;
+  return jarakKeluar;
 }
 
-bool UltrasonicManager::isMobilTerdeteksiKiri() const {
-  return terhubungKiri && (jarakKiri < AMBANG_DETEKSI_CM);
+float UltrasonicManager::getJarakKiri() const {
+  return 999.0f;
+}
+
+bool UltrasonicManager::isMobilTerdeteksiKeluar() const {
+  if (isDitunda()) return false;
+  return terhubungKeluar && (jarakKeluar < AMBANG_DETEKSI_CM);
+}
+
+bool UltrasonicManager::isDitunda() const {
+  if (gateServo && gateServo->isSedangBergerak()) {
+    return true;
+  }
+  return (millis() < waktuBolehBaca);
+}
+
+bool UltrasonicManager::isMobilTerdeteksi() const {
+  return isMobilTerdeteksiKeluar();
 }
 
 bool UltrasonicManager::isMobilTerdeteksiKanan() const {
-  return terhubungKanan && (jarakKanan < AMBANG_DETEKSI_CM);
+  return isMobilTerdeteksiKeluar();
 }
 
-bool UltrasonicManager::isTerhubungKiri() const {
-  return terhubungKiri;
+bool UltrasonicManager::isMobilTerdeteksiKiri() const {
+  return false;
+}
+
+bool UltrasonicManager::isTerhubungKeluar() const {
+  return terhubungKeluar;
+}
+
+bool UltrasonicManager::isTerhubung() const {
+  return terhubungKeluar;
 }
 
 bool UltrasonicManager::isTerhubungKanan() const {
-  return terhubungKanan;
+  return terhubungKeluar;
+}
+
+bool UltrasonicManager::isTerhubungKiri() const {
+  return false;
 }

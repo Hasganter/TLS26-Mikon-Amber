@@ -58,5 +58,6 @@ private:
 
   unsigned long waktuMobilKeluarSelesai;
   bool mobilKeluarPending;
+  unsigned long waktuGateDitutup;
 };
 

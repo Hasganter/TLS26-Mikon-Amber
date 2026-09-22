@@ -4,25 +4,57 @@ DisplayManager::DisplayManager()
   : display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET),
     isDirty(true),
     terhubung(false),
+    oledAddress(SCREEN_ADDRESS),
     waktuRenderTerakhir(0),
     waktuDetikTerakhir(0),
     waktuProbeTerakhir(0) {}
 
+void DisplayManager::scanI2C() {
+  Serial.println("[I2C SCAN] Memindai bus I2C (SDA=GPIO21, SCL=GPIO22)...");
+  int count = 0;
+  for (uint8_t addr = 1; addr < 127; addr++) {
+    Wire.beginTransmission(addr);
+    if (Wire.endTransmission() == 0) {
+      Serial.printf("[I2C SCAN] Peranti I2C terdeteksi pada alamat 0x%02X!\r\n", addr);
+      count++;
+    }
+  }
+  if (count == 0) {
+    Serial.println("[I2C SCAN] PERINGATAN: Tidak ada peranti I2C terdeteksi!");
+    Serial.println("[I2C SCAN] Periksa: 1) Kabel SDA (D21) & SCL (D22). 2) Daya VCC (3.3V/5V) & GND.");
+  }
+}
+
 bool DisplayManager::inisialisasi() {
   Wire.begin(PIN_OLED_SDA, PIN_OLED_SCL);
-  Wire.setTimeOut(10);
-  terhubung = display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
+  Wire.setClock(400000);
+  Wire.setTimeOut(50);
+
+  // 1. Coba alamat konfigurasi utama (0x3C)
+  oledAddress = SCREEN_ADDRESS;
+  terhubung = display.begin(SSD1306_SWITCHCAPVCC, oledAddress);
+
+  // 2. Jika gagal, coba alamat alternatif (0x3D)
   if (!terhubung) {
+    oledAddress = (SCREEN_ADDRESS == 0x3C) ? 0x3D : 0x3C;
+    terhubung = display.begin(SSD1306_SWITCHCAPVCC, oledAddress);
+  }
+
+  if (!terhubung) {
+    Serial.println("[DISPLAY] Gagal inisialisasi OLED pada 0x3C maupun 0x3D!");
+    scanI2C();
     return false;
   }
+
+  Serial.printf("[DISPLAY] OLED SSD1306 berhasil terhubung pada alamat 0x%02X\r\n", oledAddress);
   display.clearDisplay();
   display.setTextWrap(false);
   display.setTextSize(1);
   display.setTextColor(SSD1306_WHITE);
   display.setCursor(16, 24);
   display.print("TLS26 MIKON AMBER");
-  display.setCursor(20, 36);
-  display.print("Dual Lane System");
+  display.setCursor(26, 36);
+  display.print("Parking System");
   display.display();
   delay(1000);
   isDirty = true;
@@ -40,15 +72,19 @@ void DisplayManager::markDirty() {
 void DisplayManager::render(const UIState &state, const WiFiManager &wifi) {
   unsigned long sekarang = millis();
 
-  // Cek koneksi OLED secara periodik tiap 1 detik
-  if (sekarang - waktuProbeTerakhir >= 1000) {
-    waktuProbeTerakhir = sekarang;
-    Wire.beginTransmission(SCREEN_ADDRESS);
-    terhubung = (Wire.endTransmission() == 0);
-  }
-
-  // Jika OLED tidak terhubung, jangan panggil instruksi I2C display untuk mencegah CPU stall
+  // Jika OLED belum terhubung, coba deteksi & inisialisasi ulang tiap 2 detik
   if (!terhubung) {
+    if (sekarang - waktuProbeTerakhir >= 2000) {
+      waktuProbeTerakhir = sekarang;
+      Wire.beginTransmission(oledAddress);
+      if (Wire.endTransmission() == 0) {
+        terhubung = display.begin(SSD1306_SWITCHCAPVCC, oledAddress);
+        if (terhubung) {
+          Serial.println("[DISPLAY] OLED berhasil tersambung kembali!");
+          isDirty = true;
+        }
+      }
+    }
     return;
   }
 

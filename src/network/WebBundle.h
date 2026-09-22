@@ -300,31 +300,31 @@ const char PAGE_INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
         </div>
       </div>
 
-      <!-- Card 3: Dual Ultrasonic Sensors -->
+      <!-- Card 3: Single Ultrasonic Sensor (Exit Lane) -->
       <div class="card">
         <div class="card-title">
-          <span>Sensor Ultrasonik Dual-Lane</span>
-          <span style="font-family:var(--font-mono); color:var(--text-muted);">AMBANG: 40 CM</span>
+          <span>Sensor Ultrasonik Lane Keluar</span>
+          <span style="font-family:var(--font-mono); color:var(--text-muted);">AMBANG: 10 CM</span>
         </div>
         <div class="lane-box">
           <div class="lane-item">
             <div>
-              <div style="font-weight:600;">Lane Masuk (Kiri)</div>
+              <div style="font-weight:600;">Lane Keluar (Exit)</div>
               <div style="font-size:11px; color:var(--text-muted);">GPIO 5 / 18</div>
-            </div>
-            <div style="text-align:right;">
-              <div id="valDistLeft" style="font-size:16px; font-weight:700;">-- cm</div>
-              <span class="lane-tag tag-clear" id="tagLeft">KOSONG</span>
-            </div>
-          </div>
-          <div class="lane-item">
-            <div>
-              <div style="font-weight:600;">Lane Keluar (Kanan)</div>
-              <div style="font-size:11px; color:var(--text-muted);">GPIO 19 / 23</div>
             </div>
             <div style="text-align:right;">
               <div id="valDistRight" style="font-size:16px; font-weight:700;">-- cm</div>
               <span class="lane-tag tag-clear" id="tagRight">KOSONG</span>
+            </div>
+          </div>
+          <div class="lane-item">
+            <div>
+              <div style="font-weight:600;">Lane Masuk (Entry)</div>
+              <div style="font-size:11px; color:var(--text-muted);">ALUR KEYPAD 4x4</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:14px; font-weight:600; color:var(--accent);">KEYPAD</div>
+              <span class="lane-tag tag-clear" id="tagLeft" style="background:rgba(56,189,248,0.15); color:var(--accent); border-color:rgba(56,189,248,0.3);">AKTIF</span>
             </div>
           </div>
         </div>
@@ -517,16 +517,16 @@ const char PAGE_INDEX_HTML[] PROGMEM = R"rawliteral(<!DOCTYPE html>
         arm.classList.remove('open');
       }
 
-      // 3. Ultrasonic
-      document.getElementById('valDistLeft').innerText = (t.distLeft ? t.distLeft.toFixed(1) : '--') + ' cm';
-      const tagLeft = document.getElementById('tagLeft');
-      tagLeft.className = t.carLeft ? 'lane-tag tag-detect' : 'lane-tag tag-clear';
-      tagLeft.innerText = t.carLeft ? 'TERDETEKSI' : 'KOSONG';
-
-      document.getElementById('valDistRight').innerText = (t.distRight ? t.distRight.toFixed(1) : '--') + ' cm';
+      // 3. Ultrasonic (Lane Keluar)
+      const valDistRight = document.getElementById('valDistRight');
+      if (valDistRight) {
+        valDistRight.innerText = (t.distRight ? t.distRight.toFixed(1) : '--') + ' cm';
+      }
       const tagRight = document.getElementById('tagRight');
-      tagRight.className = t.carRight ? 'lane-tag tag-detect' : 'lane-tag tag-clear';
-      tagRight.innerText = t.carRight ? 'TERDETEKSI' : 'KOSONG';
+      if (tagRight) {
+        tagRight.className = t.carRight ? 'lane-tag tag-detect' : 'lane-tag tag-clear';
+        tagRight.innerText = t.carRight ? 'TERDETEKSI' : 'KOSONG';
+      }
 
       // 4. System & Network
       document.getElementById('txtSystemClock').innerText = `Jam RTC: ${t.time || '--:--:--'} (${t.day || ''}) | FSM: ${t.systemStatus || 'STANDBY'}`;

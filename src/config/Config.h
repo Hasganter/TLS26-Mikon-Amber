@@ -16,13 +16,11 @@
 const int SERVO_TUTUP = 0;   // Sudut tertutup (derajat)
 const int SERVO_BUKA  = 90;  // Sudut terbuka (derajat)
 
-// ── Sensor Ultrasonik HC-SR04 Lane Kiri (Masuk) ───────────────
-#define PIN_TRIG_LEFT  5
-#define PIN_ECHO_LEFT  18
-
-// ── Sensor Ultrasonik HC-SR04 Lane Kanan (Keluar) ──────────────
-#define PIN_TRIG_RIGHT 19
-#define PIN_ECHO_RIGHT 23
+// ── Sensor Ultrasonik HC-SR04 Lane Keluar (Exit) ──────────────
+#define PIN_TRIG_EXIT  5
+#define PIN_ECHO_EXIT  18
+#define PIN_TRIG_RIGHT PIN_TRIG_EXIT
+#define PIN_ECHO_RIGHT PIN_ECHO_EXIT
 
 // ── Keypad Membran 4x4 ────────────────────────────────────────
 const byte KEYPAD_BARIS = 4;
@@ -43,6 +41,8 @@ const unsigned long TIMEOUT_TUTUP_AMAN_5S  = 5000;  // 5 detik penutupan aman se
 const unsigned long TIMEOUT_GATE_OPEN_MAX  = 30000; // 30 detik batas waktu gate terbuka
 const unsigned long TIMEOUT_DEBUG_MS       = 30000; // 30 detik timeout otomatis menu debug
 const unsigned long INTERVAL_SENSOR_MS     = 60;    // Interval polling sensor non-blocking
+const unsigned long BUFFER_SERVO_GERAK_MS  = 1200;  // 1.2 detik buffer blokir sensing saat servo bergerak (mencegah misfire akibat voltage drop)
+const unsigned long DELAY_SENSOR_SETELAH_GATE_MS = BUFFER_SERVO_GERAK_MS;
 const unsigned long MULTI_TAP_TIMEOUT_MS   = 800;   // 800 ms jeda commit karakter T9
 const unsigned long WIFI_CONNECT_TIMEOUT_MS= 10000; // 10 detik batas waktu koneksi WiFi
 
@@ -51,4 +51,3 @@ const uint16_t HTTP_PORT = 80;
 const uint16_t WS_PORT   = 81;
 const char AP_FALLBACK_SSID[] = "TLS26-Parkir";
 const char AP_FALLBACK_PASS[] = "adminparkir";
-

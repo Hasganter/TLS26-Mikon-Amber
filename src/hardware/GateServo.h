@@ -21,6 +21,9 @@ public:
 
   // Status kesehatan & deteksi fisik koneksi servo
   bool isOk();
+  // Status apakah servo sedang atau baru saja diperintahkan bergerak (dalam window buffer)
+  bool isSedangBergerak() const;
+  unsigned long getWaktuMulaiGerak() const;
   int getSudut() const;
 
 private:
@@ -31,5 +34,6 @@ private:
   int posisiSudut;
   bool terhubung;
   unsigned long waktuCekTerakhir;
+  unsigned long waktuMulaiGerak;
 };
 

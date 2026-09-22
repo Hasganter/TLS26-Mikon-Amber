@@ -274,27 +274,20 @@ void UIViewDebug::renderKomponen(Adafruit_SSD1306 &display, const UIState &state
     display.print("MISSING");
   }
 
-  // Baris 2: Ultrasonic Left (Lane Masuk)
+  // Baris 2: Ultrasonic Exit (Lane Keluar)
   display.setCursor(0, 24);
-  display.print("US-L  : ");
-  if (state.usLeftOk) {
+  display.print("US-EXIT: ");
+  if (state.usExitOk) {
     display.print("OK (");
-    display.print((int)state.jarakKiri);
+    display.print((int)state.jarakKeluar);
     display.print("cm)");
   } else {
     display.print("MISSING");
   }
 
-  // Baris 3: Ultrasonic Right (Lane Keluar)
+  // Baris 3: Alur Masuk (Keypad)
   display.setCursor(0, 34);
-  display.print("US-R  : ");
-  if (state.usRightOk) {
-    display.print("OK (");
-    display.print((int)state.jarakKanan);
-    display.print("cm)");
-  } else {
-    display.print("MISSING");
-  }
+  display.print("MASUK : KEYPAD TIKET");
 
   // Baris 4: Servo Gate SG90
   display.setCursor(0, 44);

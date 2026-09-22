@@ -54,7 +54,7 @@ TLS26-Mikon-Amber/
     ├── hardware/
     │   ├── GateServo.h/.cpp         # Driver pergerakan motor servo SG90
     │   ├── KeypadManager.h/.cpp     # Driver scanning matriks 4x4 keypad membran
-    │   └── UltrasonicManager.h/.cpp # Polling non-blocking 2x sensor HC-SR04
+    │   └── UltrasonicManager.h/.cpp # Polling non-blocking 1x sensor HC-SR04 (Lane Keluar)
     ├── system/
     │   ├── StorageManager.h/.cpp    # Driver persistensi NVS Flash (slot, max_slots, wifi)
     │   └── TimeManager.h/.cpp       # Driver Software RTC (POSIX struct tm, HHMMSS)
@@ -83,7 +83,7 @@ TLS26-Mikon-Amber/
 - **Kredensial WiFi**: Disimpan permanen pada NVS namespace `"parking"`, key `"wifi_ssid"` dan `"wifi_pass"`.
 - **Port Web**: HTTP Port `80` (Aset statis PWA) dan WebSocket Port `81` (Telemetri real-time).
 - **Hotspot Cadangan (SoftAP)**: SSID `TLS26-Parkir`, Password `adminparkir`, IP `192.168.4.1`.
-- **Ambang Deteksi Jarak (`AMBANG_DETEKSI_CM`)**: `40.0 cm`.
+- **Ambang Deteksi Jarak (`AMBANG_DETEKSI_CM`)**: `10.0 cm`.
 - **Pewaktu Siklus Standby (`PERIODE_STANDBY_SCREEN`)**: `30000 ms` (30 detik).
 - **Timeout Hitung Mundur Masuk (`TIMEOUT_COUNTDOWN_5S`)**: `5000 ms` (5 detik).
 - **Timeout Penutupan Aman Setelah Lewat (`TIMEOUT_TUTUP_AMAN_5S`)**: `5000 ms` (5 detik).
@@ -92,6 +92,7 @@ TLS26-Mikon-Amber/
 - **Jeda Multi-Tap T9 Commit (`MULTI_TAP_TIMEOUT_MS`)**: `800 ms`.
 - **Batas Waktu Koneksi WiFi (`WIFI_CONNECT_TIMEOUT_MS`)**: `10000 ms` (10 detik).
 - **Interval Polling Sensor Non-blocking (`INTERVAL_SENSOR_MS`)**: `60 ms`.
+- **Buffer Blokir Sensor Saat Servo Bergerak (`BUFFER_SERVO_GERAK_MS`)**: `1200 ms` (1.2 detik buffer blokir sensing saat motor servo diperintahkan membuka/menutup untuk mencegah misfire akibat voltage drop).
 
 ---
 
@@ -103,49 +104,46 @@ Status sistem diatur melalui enum `StatusSistem`:
 - **Area Atas ($y = 2$)**: Judul status ringkas (Size 1)
   - Standby Mode A: `"SELAMAT DATANG"`
   - Standby Mode B: `"STATUS PARKIR"`
-  - Kendaraan Mendekat: `"KENDARAAN MASUK"`
   - Parkir Penuh: `"! PARKIR PENUH !"`
 - **Area Tengah ($y = 16\text{--}44$)**:
   - **Slot Tersedia (Normal)**:
     - Jika panjang teks slot $\le 5$ karakter (misal `5/5`, `50/50`): Font besar **Size 3** di tengah layar.
     - Jika panjang teks slot $> 5$ karakter (misal `150/999`, `999/999`): Auto-scaling ke font **Size 2** (lebar 84 px, rapi di tengah).
     - Dibingkai garis horizontal atas dan bawah ($y = 14$ dan $y = 45$).
-  - **Kendaraan Mendekat (`jarakKiri < 40 cm`)**: Teks Size 2 tebal `"TIKET"`.
   - **Parkir Penuh (`slotTersedia <= 0`)**: Teks Size 3 besar `"PENUH"`.
 - **Area Bawah ($y = 52$)**:
-  - Standby Mode A: `"Tekan Tombol Tiket"`
+  - Standby Mode A: `"Tekan Tombol Utk Buka"`
   - Standby Mode B: Waktu real-time ringkas `Hari, HH:MM:SS` (misal `"Rabu, 21:45:00"`).
   - Parkir Penuh: `"Gerbang Dikunci"`
 
 ---
 
-### 2. `STATUS_COUNTDOWN_5S` (Jendela Pembatalan & Pintasan Debug)
-Dipicu saat pengunjung menekan tombol keypad apapun di lane masuk ketika slot tersedia:
+### 2. `STATUS_COUNTDOWN_5S` (Cooldown Antisipasi 3x 'D' / Buka Cepat)
+Dipicu saat tombol `D` ditekan dari standby untuk mengantisipasi urutan 3x `D`:
 - Header: `[ PROSES MASUK ]`
 - Teks: `"Membuka gate dlm:"` dan angka detik besar di tengah.
+- Footer: `"Tekan tombol: Buka Cepat"`
 - **Cabang Aksi:**
-  1. **Fast-Bypass Sensor**: Jika sensor lane kiri mendeteksi kendaraan (`< 40 cm`), langsung membuka gate (`STATUS_GATE_TERBUKA`).
-  2. **Pembatalan**: Tekan tombol `C` $\to$ kembali ke `STATUS_STANDBY`.
-  3. **Pintasan Debug Mode**: Tekan `D` 3 kali berturut-turut (dapat ditekan langsung dari `STATUS_STANDBY` maupun dari `STATUS_COUNTDOWN_5S`, bahkan saat kuota slot habis/parkir penuh) $\to$ langsung beralih ke `STATUS_DEBUG_MENU`.
-  4. **Timeout Failsafe (5 Detik)**: Gate otomatis dibuka jika tidak dibatalkan.
+  1. **Tekan Tombol Apapun Selain D**: Langsung membuka gate seketika (`STATUS_GATE_TERBUKA`).
+  2. **Pintasan Debug Mode**: Tekan `D` 3 kali berturut-turut $\to$ langsung beralih ke `STATUS_DEBUG_MENU`.
+  3. **Timeout Failsafe (5 Detik)**: Gate otomatis dibuka jika tidak ada penekanan tombol lebih lanjut.
 
 ---
 
-### 3. `STATUS_GATE_TERBUKA` (Portal Terbuka & Safety Hold)
+### 3. `STATUS_GATE_TERBUKA` (Portal Terbuka & Penutupan Aman)
 - Motor servo bergerak ke sudut **90°** (terbuka).
 - Header Layar: `[ PORTAL TERBUKA ]`
-- **Safety Hold**: Selama mobil terdeteksi di bawah portal, penutupan ditahan.
-- **Penutupan Aman**: Begitu mobil selesai lewat, hitung mundur aman 5 detik berjalan. Setelah 5 detik, servo kembali ke **0°**, slot berkurang 1, disimpan ke NVS Flash, dan kembali ke `STATUS_STANDBY`.
-- **Safety Timeout (30 Detik)**: Jika mobil tidak lewat dalam 30 detik, gate otomatis menutup demi keamanan.
-- **Opsi Tutup Sekarang**: Setelah 5 detik pertama portal dibuka, pengguna/operator dapat menekan tombol `C` untuk langsung menutup gate seketika tanpa harus menunggu 30 detik.
+- Menampilkan teks `"Silakan Masuk"` dan countdown batas waktu portal.
+- **Opsi Tutup Sekarang**: Setelah 5 detik pertama portal dibuka, pengguna/operator dapat menekan tombol `C` atau `#` untuk langsung menutup gate seketika tanpa harus menunggu 30 detik.
+- **Safety Timeout (30 Detik)**: Jika tidak ditutup manual, gate otomatis menutup setelah 30 detik, kuota slot parkir berkurang 1, disimpan ke Flash NVS, dan kembali ke `STATUS_STANDBY`.
 
 ---
 
-### 4. `STATUS_LANE_KELUAR` (Lane Kanan Otomatis)
-Dipicu saat sensor ultrasonik lane kanan mendeteksi kendaraan keluar (`jarakKanan < 40 cm`):
+### 4. `STATUS_LANE_KELUAR` (Lane Keluar Sensor Tunggal Otomatis)
+Dipicu saat sensor ultrasonik lane keluar mendeteksi kendaraan (`jarakKeluar < 10.0 cm`):
 - Header: `[ LANE KELUAR ]`
 - Teks: `"SAMPAI JUMPA!"` (Size 2) dan `"Hati-hati di jalan!"`.
-- Setelah mobil lewat: Slot parkir bertambah 1 (`slotTersedia++`, dibatasi maksimal `kapasitasMaksimal`), disimpan ke NVS Flash, lalu kembali ke `STATUS_STANDBY`.
+- Setelah mobil lewat (`jarakKeluar >= 10.0 cm`): Slot parkir bertambah 1 (`slotTersedia++`, dibatasi maksimal `kapasitasMaksimal`), disimpan ke NVS Flash, ditahan 800 ms, lalu kembali ke `STATUS_STANDBY`.
 
 ---
 
@@ -221,7 +219,7 @@ Menu utama konfigurasi:
 ---
 
 ### 11. `STATUS_DEBUG_KOMPONEN` (Diagnostik Status Komponen Hardware Live)
-- Menampilkan status langsung seluruh peranti keras yang diharapkan (`OLED`, `US-L`, `US-R`, `SERVO`, `KEYPAD`) dengan pembaruan *live* setiap **1 detik**.
+- Menampilkan status langsung 4 peranti keras yang diharapkan (`OLED`, `US-EXIT`, `SERVO`, `KEYPAD`) dengan pembaruan *live* setiap **1 detik**.
 - Jika terdapat komponen yang terlepas/hilang:
   - Header layar default (`STATUS_STANDBY`) akan berkedip antara `"SELAMAT DATANG"` dan `"-{x} Comp. Detected"` setiap 1 detik.
   - Opsi `6: Mute Notif` di menu debug dapat digunakan untuk membungkam notifikasi kedipan ini sementara hingga siklus daya berikutnya (*volatile until power reset*).

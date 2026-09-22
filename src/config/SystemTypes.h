@@ -39,6 +39,7 @@ struct UIState {
   int slotTersedia;
   int kapasitasMaksimal;
   bool layarStandbyModeA;
+  float jarakKeluar;
   float jarakKiri;
   float jarakKanan;
 
@@ -78,6 +79,7 @@ struct UIState {
   int missingComponentCount;
   bool muteMissingNotifier;
   bool oledOk;
+  bool usExitOk;
   bool usLeftOk;
   bool usRightOk;
   bool servoOk;

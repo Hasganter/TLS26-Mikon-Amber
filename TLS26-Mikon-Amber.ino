@@ -50,8 +50,8 @@ void setup() {
   }
 
   // Inisialisasi Hardware
-  ultrasonic.inisialisasi();
   gate.inisialisasi(PIN_SERVO_GATE);
+  ultrasonic.inisialisasi(&gate);
 
   // Inisialisasi Software RTC & Storage
   TimeManager::inisialisasiWaktu();
@@ -97,6 +97,7 @@ void loop() {
   state.slotTersedia = parking.getSlotTersedia();
   state.kapasitasMaksimal = parking.getKapasitasMaksimal();
   state.layarStandbyModeA = parking.isLayarStandbyModeA();
+  state.jarakKeluar = ultrasonic.getJarakKeluar();
   state.jarakKiri = ultrasonic.getJarakKiri();
   state.jarakKanan = ultrasonic.getJarakKanan();
 
@@ -110,24 +111,23 @@ void loop() {
   state.bufTanggal = bufTanggal;
   state.bufHari = bufHari;
 
-  // Status Diagnostik Seluruh Komponen Hardware
+  // Status Diagnostik Seluruh Komponen Hardware (4 Komponen Terpasang)
   bool oledOk = displayMgr.isOk();
-  bool usLeftOk = ultrasonic.isTerhubungKiri();
-  bool usRightOk = ultrasonic.isTerhubungKanan();
+  bool usExitOk = ultrasonic.isTerhubungKeluar();
   bool servoOk = gate.isOk();
   bool keypadOk = keypadMgr.isOk();
 
   int missingCount = 0;
   if (!oledOk) missingCount++;
-  if (!usLeftOk) missingCount++;
-  if (!usRightOk) missingCount++;
+  if (!usExitOk) missingCount++;
   if (!servoOk) missingCount++;
   if (!keypadOk) missingCount++;
 
   state.missingComponentCount = missingCount;
   state.oledOk = oledOk;
-  state.usLeftOk = usLeftOk;
-  state.usRightOk = usRightOk;
+  state.usExitOk = usExitOk;
+  state.usLeftOk = false;
+  state.usRightOk = usExitOk;
   state.servoOk = servoOk;
   state.keypadOk = keypadOk;
   state.gateAngle = gate.getSudut();

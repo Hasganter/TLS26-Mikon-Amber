@@ -27,9 +27,12 @@ public:
   void markDirty();
 
 private:
+  void scanI2C();
+
   Adafruit_SSD1306 display;
   bool isDirty;
   bool terhubung;
+  uint8_t oledAddress;
   unsigned long waktuRenderTerakhir;
   unsigned long waktuDetikTerakhir;
   unsigned long waktuProbeTerakhir;

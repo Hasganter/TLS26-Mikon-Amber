@@ -122,9 +122,11 @@ void WebDashboardManager::broadcastTelemetry(const UIState &state) {
   json += ",\"gate\":\"" + gateStr + "\"";
   json += ",\"gateAngle\":" + String(parking.getSudutGate());
   json += ",\"distLeft\":" + String(state.jarakKiri, 1);
-  json += ",\"distRight\":" + String(state.jarakKanan, 1);
-  json += ",\"carLeft\":" + String(state.jarakKiri < AMBANG_DETEKSI_CM ? "true" : "false");
-  json += ",\"carRight\":" + String(state.jarakKanan < AMBANG_DETEKSI_CM ? "true" : "false");
+  json += ",\"distRight\":" + String(state.jarakKeluar, 1);
+  json += ",\"distExit\":" + String(state.jarakKeluar, 1);
+  json += ",\"carLeft\":false";
+  json += ",\"carRight\":" + String(state.jarakKeluar < AMBANG_DETEKSI_CM ? "true" : "false");
+  json += ",\"carExit\":" + String(state.jarakKeluar < AMBANG_DETEKSI_CM ? "true" : "false");
   json += ",\"systemStatus\":\"" + fsmStr + "\"";
   json += ",\"time\":\"" + String(state.bufWaktu) + "\"";
   json += ",\"date\":\"" + String(state.bufTanggal) + "\"";
